@@ -107,6 +107,8 @@ Security reports involving:
 * Dockerfiles and deployment scripts
 * Sensitive information exposure caused by project code
 * Security-impacting configuration included with the project
+* GeoIP integration and API credential handling
+* Improper handling or exposure of IPinfo API tokens
 
 ### Out of Scope
 
@@ -126,7 +128,7 @@ Third-party vulnerabilities should be reported to the relevant service provider.
 
 Recommended security practices include:
 
-* Keep Discord bot tokens, database passwords, API keys, and other secrets out of Git repositories.
+* Keep Discord bot tokens, database passwords, API keys, IPinfo API tokens, and other secrets out of Git repositories.
 * Use environment variables or a dedicated secret-management system.
 * Do not expose PostgreSQL directly to the public Internet.
 * Restrict database access to trusted internal networks.
@@ -141,6 +143,88 @@ Recommended security practices include:
 * Test database restores periodically.
 * Monitor application logs for suspicious activity, unexpected configuration changes, unauthorized access, and mass deletions.
 
+## Secrets and Environment Variables
+
+CSMatrix-zC uses environment variables for sensitive configuration.
+
+The following types of values must never be committed to GitHub:
+
+* Discord bot tokens
+* Database passwords
+* API keys
+* IPinfo API tokens
+* Webhook secrets
+* Private credentials
+* Production `.env` files
+
+### Local Environment
+
+For local development, sensitive values should be stored in:
+
+```text
+.env
+```
+
+The repository should contain only the example configuration:
+
+```text
+.env.example
+```
+
+with placeholder values.
+
+For example:
+
+```env
+IPINFO_TOKEN=your_ipinfo_token_here
+```
+
+The value above is only a placeholder and must not be replaced with a real production token in `.env.example`.
+
+The real token belongs in the local `.env` file or in the secret/environment-variable system provided by the production host.
+
+### Railway and Other Hosting Providers
+
+When deploying CSMatrix-zC to a hosting provider such as Railway:
+
+* Configure `IPINFO_TOKEN` through the provider's Variables/Secrets system.
+* Do not commit the production `.env` file to GitHub.
+* Do not hard-code the IPinfo token in JavaScript source files.
+* Do not place the token in documentation, screenshots, issue reports, or public configuration examples.
+* Rotate the token immediately if it is accidentally exposed.
+
+## GeoIP and IPinfo
+
+The Game Server Monitor uses IPinfo Lite for country-level IP geolocation.
+
+The integration may send a Game Server IP address to the IPinfo API in order to determine country information.
+
+The project stores the resulting country information in PostgreSQL so the GeoIP service does not need to be called during every Game Server monitoring cycle.
+
+The application should use the API token through an environment variable:
+
+```text
+IPINFO_TOKEN
+```
+
+The token must never be embedded directly in source code.
+
+Only the minimum GeoIP information required by the Game Server Monitor should be stored, such as:
+
+* Country
+* ISO country code
+* Country flag
+
+The Game Server Monitor currently displays country information in the compact format:
+
+```text
+🇲🇦 MA
+```
+
+IPinfo is a third-party service. Its availability, API behavior, rate limits, account controls, and privacy policies are outside the direct control of CSMatrix-zC maintainers.
+
+Users should review the applicable IPinfo terms and policies for their deployment and use case.
+
 ## Disclosure and Credits
 
 Security researchers who responsibly report vulnerabilities may be credited in release notes or security advisories, unless they request anonymity.
@@ -152,6 +236,10 @@ For significant vulnerabilities, the maintainers may coordinate disclosure with 
 CSMatrix-zC does not intentionally send usage telemetry or project data to the maintainers by default.
 
 Self-hosted instances operate independently and maintainers do not receive data from those deployments.
+
+The Game Server Monitor may contact the configured third-party GeoIP provider when GeoIP information is required.
+
+Only the Game Server IP needed for the GeoIP lookup should be sent to the configured provider.
 
 Any future telemetry feature must be clearly documented and should be transparent to users, including information about what is collected and how it can be disabled.
 

@@ -1,16 +1,18 @@
-# TitanBot Roadmap / Structure Overview
+# CSMatrix-zC Roadmap / Structure Overview
 
 ## Goal
 
 * Keep this as a practical map of the codebase.
 * Show main folders and important files only (not every file).
+* Keep the structure aligned with the current CSMatrix-zC project.
 
 ## Root
 
 * `index.js`                    -> process entry point
 * `package.json`                -> scripts, dependencies, project metadata
-* `README.md`                   -> setup and usage docs
+* `README.md`                   -> setup and usage documentation
 * `SECURITY.md`                 -> security policy
+* `roadmap.txt`                 -> project structure and feature roadmap
 * `scripts/`                    -> utility/maintenance scripts (backup, restore, migrate)
 * `logs/`                       -> runtime log output
 * `src/`                        -> main bot application code
@@ -23,21 +25,29 @@
 * `commands/`                   -> slash command categories by feature
 
   * `Core/`                     -> help, ping, stats, uptime, invite
+
   * `Community/`                -> application management + dashboards
+
   * `Logging/`                  -> audit logging + event management
 
-    * `modules/logging_dashboard.js`
-    * `modules/logging_setchannel.js`
   * `Ticket/`                   -> support ticket system + dashboard
+
   * `ServerStats/`              -> server stats channel system
+
   * `Economy/`                  -> economy system
+
   * `Moderation/`               -> moderation/admin commands
+
   * `Verification/`             -> member verification flow
+
   * `JoinToCreate/`             -> dynamic voice channel creation
+
   * `Reaction_roles/`           -> automatic role assignment
-  * `GameServers/`               -> game server management and monitoring
+
+  * `GameServers/`               -> Game Server management and monitoring
 
     * `gameservers.js`           -> `/gameserver add` and `/gameserver edit`
+
   * `Birthday/`, `Fun/`, `Giveaway/`, `Leveling/`, `Search/`, `Tools/`, `Utility/`, `Welcome/`
 
 * `config/`                     -> centralized configuration modules
@@ -48,20 +58,25 @@
 
   * `commandLoader.js`          -> loads slash commands at startup
   * `events.js`                 -> Discord event listener registration
-  * `interactions.js`           -> button/select/modal router
+  * `interactions.js`            -> button/select/modal router
   * `ticketButtons.js`, `reactionRoles.js`, etc.
 
 * `interactions/`               -> button, modal, and select menu handlers
 
   * `buttons/gameServer/`       -> Game Server buttons
 
-    * `refresh_server.js`       -> refresh server information
+    * `refresh_server.js`       -> refresh live server information
     * `toggle_players.js`       -> show/hide player and bot lists
     * `delete_server.js`        -> open Game Server deletion confirmation
-  * `modals/gameServer/`        -> Game Server modal handlers
+    * `claim_server.js`         -> start Game Server ownership claim
+    * `verify_ownership.js`     -> open ownership verification
+  * `modals/`                   -> modal handlers
 
-    * `gameserver_add.js`       -> add a new Game Server
-    * `delete_server_confirm.js`-> confirm and execute Game Server deletion
+    * `gameServerAdd.js`        -> add a new Game Server
+    * `gameServer/claim_server_verify.js`
+      -> verify Game Server ownership
+    * `gameServer/delete_server_confirm.js`
+      -> confirm and execute Game Server deletion
 
 * `services/`                   -> business logic + data operations
 
@@ -69,9 +84,11 @@
 
     * `serverConfig.js`         -> Game Server Monitor name, version, interval and embed colors
     * `gameQueryService.js`     -> queries game servers with Gamedig
-    * `serverEmbed.js`           -> builds Game Server information and player/bot list embeds
+    * `serverEmbed.js`          -> builds Game Server information and player/bot list embeds
     * `serverMonitorService.js` -> periodic monitoring, message updates and online/offline alerts
     * `gameServerDatabase.js`   -> Game Server database operations
+    * `geoIpService.js`         -> IP resolution and country GeoIP lookup through IPinfo
+
   * `discord/`                  -> Discord-specific services
 
     * `discordInviteService.js` -> creates Discord channel invites for Game Servers
@@ -79,36 +96,121 @@
 * `utils/`                      -> shared helpers
 
   * `database.js`               -> facade re-exporting database modules
-  * `database/wrapper.js`       -> DatabaseWrapper, get/set helpers
-  * `database/keys.js`          -> Redis-style key builders
-  * `database/tickets.js`       -> ticket persistence + guild ticket stats
-  * `panelStatus.js`            -> shared panel message detection
-  * `errorHandler.js`, `logger.js`, `embeds.js`, etc.
+  * `database/`                  -> database wrappers, keys and persistence helpers
+  * `panelStatus.js`             -> shared panel message detection
+  * `errorHandler.js`            -> shared error handling
+  * `logger.js`                  -> application logging
+  * `embeds.js`                  -> shared embed utilities
 
 ## Database
 
-* PostgreSQL (primary) with in-memory fallback for development
-* Graceful degradation when PostgreSQL is unavailable
-* Game Servers are stored in PostgreSQL with persistent server/channel/message configuration
+* PostgreSQL                     -> primary persistent database
+* In-memory fallback             -> development fallback when PostgreSQL is unavailable
+* Graceful degradation           -> bot continues operating when PostgreSQL is unavailable
+* Game Servers                   -> stored with persistent server, channel and message configuration
+* Ownership Claims               -> verification state, failed attempts, cooldowns and temporary locks are persisted
+* GeoIP Location                 -> cached country information is stored to avoid repeated lookups
 
 ## Game Server Monitor
 
-* `/gameserver add`          -> add a new Game Server through a modal
-* `/gameserver edit`         -> move/update the Game Server monitor and alert channel
-* Refresh button             -> refresh live server information
-* Show/Hide Players button   -> show or hide Player List and Bot List
-* Delete button              -> confirm and delete a Game Server
-* Player List                -> displayed as a normal list
-* Bot List                   -> displayed as a normal list
-* Online / Offline status    -> updated through the Game Server Monitor
-* Discord Invite             -> generated for the configured Game Server channel
-* Multi-Embed layout         -> server information and player/bot lists are separated into two embeds
-* Game Server Monitor version -> `3.2.0`
+### Current Version
+
+* `3.2.4`
+
+### Core Features
+
+* `/gameserver add`              -> add a new Game Server through a modal
+* `/gameserver edit`             -> move/update the Game Server monitor and alert channel
+* Refresh button                 -> refresh live server information
+* Show/Hide Players button       -> show or hide Player List and Bot List
+* Delete button                  -> confirm and delete a Game Server
+* Player List                    -> displayed as a normal list
+* Bot List                       -> displayed as a normal list
+* Online / Offline status        -> updated through the Game Server Monitor
+* Discord Invite                 -> generated for the configured Game Server channel
+* Multi-Embed layout             -> server information and player/bot lists are separated into two embeds
+
+### Server Information
+
+* Live Hostname                  -> displayed from the live Gamedig response
+* Server Address                 -> IP and port
+* Game Type                      -> stored and displayed with the Game Server
+* Map                            -> current server map
+* Players                        -> online players and maximum slots
+* Bots                           -> bot count and bot list when available
+* Ping                           -> current query latency when available
+* Country                        -> displayed as flag + ISO code, e.g. `🇲🇦 MA`
+* GeoIP Provider                -> IPinfo Lite API
+* GeoIP Cache                    -> country data stored in PostgreSQL
+
+### Ownership Verification
+
+* Claim Server button             -> starts ownership claim flow
+* Verification Code              -> unique `GSM-XXXXXX` code
+* Verification Format            -> `CS16 | GSM-XXXXXX`
+* Live Hostname Check             -> verification requires the code to appear in the live server hostname
+* Verified Owner                 -> stored as Discord user ID and displayed as a Discord mention
+* Verified State                  -> Claim button changes to `✅ Verified` and becomes disabled
+* Claim Cooldown                 -> prevents repeated claim requests
+* Failed Attempt Protection      -> failed verification attempts are rate-limited
+* Temporary Lock                 -> repeated failures can temporarily lock verification attempts
+* Persistent Protection State    -> cooldowns, failures and locks are stored in PostgreSQL
+
+## Environment / Deployment
+
+* `.env`                          -> local secrets and development environment values
+* `.env.example`                  -> safe environment variable template without real secrets
+* `DISCORD_TOKEN`                 -> Discord bot token
+* `DATABASE_URL`                  -> PostgreSQL connection string
+* `IPINFO_TOKEN`                  -> IPinfo Lite API token for GeoIP
+* Docker                           -> local development and testing only
+* Railway                          -> production deployment environment
+* GitHub                           -> source control and project repository
+
+## Project Architecture
+
+* Commands                         -> define user-facing slash commands
+* Handlers                         -> load and route Discord interactions
+* Interactions                     -> process buttons, modals and select menus
+* Services                         -> contain business logic and external integrations
+* Utils                             -> shared helpers and database infrastructure
+* PostgreSQL                        -> persistent application state
+
+## Development Roadmap
+
+### Completed
+
+* Game Server Add / Edit
+* Game Server Monitor
+* Live Gamedig Queries
+* Online / Offline Detection
+* Player and Bot Lists
+* Discord Invite Integration
+* Multi-Embed Server Display
+* Ownership Claim System
+* Ownership Verification
+* Verification Rate Limiting
+* Persistent Ownership Protection
+* Live Hostname Verification
+* GeoIP Country Detection
+* PostgreSQL GeoIP Caching
+* Railway Production Deployment Support
+
+### Future
+
+* Additional Game Server Types
+* Expanded server statistics
+* More Game Server administration tools
+* Improved monitoring and alert customization
+* Dashboard integration
+* Additional ownership and server management controls
 
 ## Notes
 
 * Modular by feature area: commands -> handlers -> interactions -> services -> utils
-* Game Server Monitor is implemented as an independent feature module
-* Game Server Monitor configuration is separate from the main `package.json` bot version
-* `bot.js` is the single source of truth for embed theming/colors and core bot config
-* PostgreSQL remains the persistent database for Game Server configuration and monitoring data
+* Game Server Monitor is implemented as an independent feature module.
+* Game Server Monitor configuration is separate from the main `package.json` bot version.
+* PostgreSQL remains the persistent database for Game Server configuration, monitoring and ownership state.
+* `IPINFO_TOKEN` must never be committed to GitHub.
+* `.env.example` contains placeholders only; production secrets are configured through the deployment environment.
+* Game Server Monitor version is incremented only after a feature is implemented and successfully tested.
