@@ -1,6 +1,8 @@
+
 import {
     getMonitoredGameServers,
-    updateGameServerStatus
+    updateGameServerStatus,
+    setGameServerMessage
 } from './gameServerDatabase.js';
 
 import { fetchServerInfo } from './gameQueryService.js';
@@ -9,6 +11,12 @@ import { gameServerConfig } from './serverConfig.js';
 
 import { pgDb } from '../../utils/postgresDatabase.js';
 import { logger } from '../../utils/logger.js';
+
+import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} from 'discord.js';
 
 class ServerMonitorService {
     constructor(client) {
@@ -172,6 +180,9 @@ class ServerMonitorService {
 
         /*
          * تحديث رسالة Discord
+         *
+         * إذا كانت الرسالة محذوفة، سيتم إنشاء رسالة
+         * جديدة تلقائيًا وحفظ الـ message_id الجديد.
          */
         await this.updateServerMessage(
             updatedServer,
@@ -180,13 +191,6 @@ class ServerMonitorService {
 
         /*
          * لا نرسل Alert في أول فحص.
-         *
-         * مثلًا:
-         * last_online = null
-         * current = true
-         *
-         * هذا ليس "Offline -> Online"،
-         * لأننا لا نعرف الحالة السابقة.
          */
         const isFirstCheck = !this.initializedServers.has(
             server.id
@@ -215,10 +219,10 @@ class ServerMonitorService {
          * السيرفر يحتاج إلى channel_id و message_id
          * حتى نستطيع تعديل الرسالة الموجودة.
          */
-        if (!server.channel_id || !server.message_id) {
+        if (!server.channel_id) {
             logger.warn(
                 `[GameServer Monitor] Server #${server.id} ` +
-                `does not have a Discord message configured.`
+                `does not have a Discord channel configured.`
             );
 
             return;
@@ -238,47 +242,191 @@ class ServerMonitorService {
                 return;
             }
 
-            const message = await channel.messages.fetch(
-                server.message_id
-            );
-
-            if (!message) {
-                logger.warn(
-                    `[GameServer Monitor] Message ${server.message_id} ` +
-                    `not found for server #${server.id}.`
+            /*
+             * إذا لم يكن هناك message_id أصلًا،
+             * ننشئ رسالة جديدة.
+             */
+            if (!server.message_id) {
+                await this.createServerMessage(
+                    server,
+                    channel,
+                    embed
                 );
 
                 return;
             }
 
-            /*
-             * نعدل الـ Embed فقط.
-             *
-             * مهم:
-             * لا نرسل components هنا، لذلك زر 🔄 تحديث
-             * الموجود في الرسالة سيبقى موجودًا.
-             */
-            await message.edit({
-                embeds: [embed]
-            });
+            try {
+                const message = await channel.messages.fetch(
+                    server.message_id
+                );
+
+                /*
+                * إعادة بناء أزرار Game Server.
+                *
+                * هذا مهم للرسائل القديمة التي تم إنشاؤها
+                * قبل إضافة زر Delete.
+                */
+
+                const refreshButton = new ButtonBuilder()
+                    .setCustomId(`refresh_server:${server.id}`)
+                    .setLabel('Refresh')
+                    .setEmoji('🔄')
+                    .setStyle(ButtonStyle.Secondary);
+
+                const playersButton = new ButtonBuilder()
+                    .setCustomId(`toggle_players:${server.id}`)
+                    .setLabel(
+                        server.show_players === false
+                            ? 'Show Players'
+                            : 'Hide Players'
+                    )
+                    .setEmoji(
+                        server.show_players === false
+                            ? '👥'
+                            : '🙈'
+                    )
+                    .setStyle(ButtonStyle.Primary);
+
+                const deleteButton = new ButtonBuilder()
+                    .setCustomId(`delete_server:${server.id}`)
+                    .setLabel('Delete')
+                    .setEmoji('🗑️')
+                    .setStyle(ButtonStyle.Danger);
+
+                const row = new ActionRowBuilder()
+                    .addComponents(
+                        refreshButton,
+                        playersButton,
+                        deleteButton
+                    );
+
+
+
+
+
+                /*
+                * تحديث الـ Embed وإعادة إرسال الزرين.
+                *
+                * بهذه الطريقة:
+                * - الرسائل القديمة تحصل على زر Delete.
+                * - الرسائل الجديدة تبقى كما هي.
+                * - زر Delete لن يختفي عند تحديث السيرفر.
+                */
+                await message.edit({
+                    embeds: [embed],
+                    components: [row]
+                });
+
+                return;
+
+            } catch (error) {
+                /*
+                 * Discord error 10008 =
+                 * Unknown Message
+                 */
+                if (error?.code === 10008) {
+                    logger.warn(
+                        `[GameServer Monitor] Message ${server.message_id} ` +
+                        `was deleted for server #${server.id}. ` +
+                        `Creating a new message...`
+                    );
+
+                    await this.createServerMessage(
+                        server,
+                        channel,
+                        embed
+                    );
+
+                    return;
+                }
+
+                throw error;
+            }
 
         } catch (error) {
-            /*
-             * Discord قد يرجع:
-             *
-             * Unknown Channel
-             * Unknown Message
-             * Missing Access
-             *
-             * لذلك لا نوقف الـ Monitor بالكامل بسبب
-             * رسالة سيرفر واحدة.
-             */
-
             logger.error(
                 `[GameServer Monitor] Failed to update Discord message ` +
                 `for server #${server.id}:`,
                 error
             );
+        }
+    }
+
+    async createServerMessage(server, channel, embed) {
+        try {
+            /*
+             * زر Refresh
+             */
+            
+            const refreshButton = new ButtonBuilder()
+                .setCustomId(`refresh_server:${server.id}`)
+                .setLabel('Refresh')
+                .setEmoji('🔄')
+                .setStyle(ButtonStyle.Secondary);
+
+            const playersButton = new ButtonBuilder()
+                .setCustomId(`toggle_players:${server.id}`)
+                .setLabel(
+                    server.show_players === false
+                        ? 'Show Players'
+                        : 'Hide Players'
+                )
+                .setEmoji(
+                    server.show_players === false
+                        ? '👥'
+                        : '🙈'
+                )
+                .setStyle(ButtonStyle.Primary);
+
+            const deleteButton = new ButtonBuilder()
+                .setCustomId(`delete_server:${server.id}`)
+                .setLabel('Delete')
+                .setEmoji('🗑️')
+                .setStyle(ButtonStyle.Danger);
+
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    refreshButton,
+                    playersButton,
+                    deleteButton
+                );
+
+
+
+            /*
+             * إرسال الرسالة الجديدة.
+             */
+            const message = await channel.send({
+                embeds: [embed],
+                components: [row]
+            });
+
+            /*
+             * حفظ channel_id و message_id الجديدين
+             * في PostgreSQL.
+             */
+            await setGameServerMessage(
+                server.id,
+                channel.id,
+                message.id
+            );
+
+            logger.info(
+                `[GameServer Monitor] Recreated message for server #${server.id}. ` +
+                `New message ID: ${message.id}`
+            );
+
+            return message;
+
+        } catch (error) {
+            logger.error(
+                `[GameServer Monitor] Failed to recreate message ` +
+                `for server #${server.id}:`,
+                error
+            );
+
+            return null;
         }
     }
 
@@ -393,3 +541,4 @@ class ServerMonitorService {
 }
 
 export default ServerMonitorService;
+

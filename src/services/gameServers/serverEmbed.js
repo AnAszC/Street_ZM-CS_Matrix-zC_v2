@@ -1,3 +1,4 @@
+
 import { EmbedBuilder } from 'discord.js';
 import { gameServerConfig } from './serverConfig.js';
 
@@ -26,6 +27,11 @@ export function buildServerEmbed(server, serverData) {
                 inline: true
             },
             {
+                name: '🆔 معرف السيرفر',
+                value: `\`${server.id}\``,
+                inline: true
+            },
+            {
                 name: '🔗 العنوان',
                 value: `\`${server.host}:${server.port}\``,
                 inline: false
@@ -35,24 +41,26 @@ export function buildServerEmbed(server, serverData) {
             text: `آخر تحديث: ${new Date().toLocaleString('ar-MA')}`
         });
 
-    if (
-        isOnline &&
-        Array.isArray(serverData.playerList) &&
-        serverData.playerList.length > 0
-    ) {
-        const playerList = serverData.playerList
-            .map((player, index) => `${index + 1}. ${player}`)
-            .join('\n');
+        if (
+            server.show_players !== false &&
+            isOnline &&
+            Array.isArray(serverData.playerList) &&
+            serverData.playerList.length > 0
+        ) {
+            const playerList = serverData.playerList
+                .map((player, index) => `${index + 1}. ${player}`)
+                .join('\n');
 
-        embed.addFields({
-            name: '🟢 اللاعبون المتصلون',
-            value:
-                playerList.length > 1024
-                    ? `${playerList.slice(0, 1021)}...`
-                    : playerList,
-            inline: false
-        });
-    }
+            embed.addFields({
+                name: '🟢 اللاعبون المتصلون',
+                value:
+                    playerList.length > 1024
+                        ? `${playerList.slice(0, 1021)}...`
+                        : playerList,
+                inline: false
+            });
+        }
 
     return embed;
 }
+

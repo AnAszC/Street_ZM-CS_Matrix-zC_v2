@@ -33,6 +33,7 @@ export const tableStatements = [
 
         monitor_enabled BOOLEAN NOT NULL DEFAULT TRUE,
         alert_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        show_players BOOLEAN NOT NULL DEFAULT TRUE,
 
         last_online BOOLEAN,
         last_players INTEGER DEFAULT 0,
@@ -48,6 +49,9 @@ export const tableStatements = [
 
         UNIQUE (guild_id, host, port)
     )`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS show_players BOOLEAN NOT NULL DEFAULT TRUE`,
     
     `CREATE TABLE IF NOT EXISTS ${t.users} (
         id VARCHAR(20) PRIMARY KEY,

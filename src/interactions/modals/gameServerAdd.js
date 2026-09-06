@@ -1,3 +1,4 @@
+
 import {
     ActionRowBuilder,
     ButtonBuilder,
@@ -172,15 +173,23 @@ export default {
             );
 
             // =========================
-            // زر التحديث
+            // أزرار Game Server
             // =========================
+
+            const refreshButton = new ButtonBuilder()
+                .setCustomId(`refresh_server:${server.id}`)
+                .setLabel('🔄 تحديث')
+                .setStyle(ButtonStyle.Primary);
+
+            const deleteButton = new ButtonBuilder()
+                .setCustomId(`delete_server:${server.id}`)
+                .setLabel('🗑️ حذف')
+                .setStyle(ButtonStyle.Danger);
 
             const row = new ActionRowBuilder()
                 .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`refresh_server:${server.id}`)
-                        .setLabel('🔄 تحديث')
-                        .setStyle(ButtonStyle.Primary)
+                    refreshButton,
+                    deleteButton
                 );
 
             // =========================
@@ -242,3 +251,4 @@ export default {
         }
     }
 };
+

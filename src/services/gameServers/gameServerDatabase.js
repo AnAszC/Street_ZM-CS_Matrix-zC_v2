@@ -26,6 +26,7 @@ export async function getGameServerById(serverId) {
             message_id,
             monitor_enabled,
             alert_enabled,
+            show_players,
             last_online,
             last_players,
             last_max_players,
@@ -66,6 +67,7 @@ export async function getGameServersByGuild(guildId) {
             message_id,
             monitor_enabled,
             alert_enabled,
+            show_players,
             last_online,
             last_players,
             last_max_players,
@@ -162,7 +164,8 @@ export async function updateGameServer(serverId, updates = {}) {
         channelId: 'channel_id',
         messageId: 'message_id',
         monitorEnabled: 'monitor_enabled',
-        alertEnabled: 'alert_enabled'
+        alertEnabled: 'alert_enabled',
+        showPlayers: 'show_players'
     };
 
     const entries = Object.entries(updates)
