@@ -1,4 +1,3 @@
-
 import {
     PermissionFlagsBits
 } from 'discord.js';
@@ -21,7 +20,7 @@ export default {
 
             if (!interaction.guildId) {
                 await interaction.editReply({
-                    content: '❌ هذا الإجراء يمكن استخدامه داخل السيرفر فقط.'
+                    content: '❌ This action can only be used inside a Discord server.'
                 });
                 return;
             }
@@ -32,14 +31,14 @@ export default {
                 )
             ) {
                 await interaction.editReply({
-                    content: '❌ ليس لديك صلاحية حذف Game Servers.'
+                    content: '❌ You do not have permission to delete Game Servers.'
                 });
                 return;
             }
 
             if (!serverId) {
                 await interaction.editReply({
-                    content: '❌ معرف السيرفر غير موجود.'
+                    content: '❌ Game Server ID is missing.'
                 });
                 return;
             }
@@ -48,14 +47,14 @@ export default {
 
             if (!server) {
                 await interaction.editReply({
-                    content: '❌ لم يتم العثور على Game Server في قاعدة البيانات.'
+                    content: '❌ The Game Server was not found in the database.'
                 });
                 return;
             }
 
             if (server.guild_id !== interaction.guildId) {
                 await interaction.editReply({
-                    content: '❌ لا يمكنك حذف Game Server تابع لسيرفر Discord آخر.'
+                    content: '❌ You cannot delete a Game Server belonging to another Discord server.'
                 });
                 return;
             }
@@ -68,8 +67,8 @@ export default {
             if (enteredId !== String(server.id)) {
                 await interaction.editReply({
                     content:
-                        `❌ معرف السيرفر غير صحيح.\n` +
-                        `يجب كتابة \`${server.id}\` بالضبط.`
+                        `❌ Invalid Game Server ID.\n` +
+                        `You must enter \`${server.id}\` exactly.`
                 });
                 return;
             }
@@ -82,15 +81,15 @@ export default {
             if (!deletedServer) {
                 await interaction.editReply({
                     content:
-                        '❌ فشل حذف Game Server من قاعدة البيانات.'
+                        '❌ Failed to delete the Game Server from the database.'
                 });
                 return;
             }
 
             /*
-             * حذف رسالة Game Server المرتبطة بالسيرفر.
-             * لا نعتمد على interaction.message لأن Modal Submit
-             * هو Interaction مستقل عن زر الحذف.
+             * Delete the Game Server message associated with the server.
+             * We do not rely on interaction.message because the Modal Submit
+             * is a separate interaction from the delete button.
              */
             if (server.channel_id && server.message_id) {
                 try {
@@ -123,8 +122,8 @@ export default {
 
             await interaction.editReply({
                 content:
-                    `✅ تم حذف Game Server **#${server.id}** بنجاح.\n` +
-                    `🎮 **السيرفر:** ${server.name}`
+                    `✅ Game Server **#${server.id}** was deleted successfully.\n` +
+                    `🎮 **Server:** ${server.name}`
             });
 
             console.log(
@@ -140,16 +139,15 @@ export default {
             if (interaction.deferred || interaction.replied) {
                 await interaction.editReply({
                     content:
-                        '❌ حدث خطأ أثناء حذف Game Server.'
+                        '❌ An error occurred while deleting the Game Server.'
                 }).catch(() => {});
             } else {
                 await interaction.reply({
                     content:
-                        '❌ حدث خطأ أثناء حذف Game Server.',
+                        '❌ An error occurred while deleting the Game Server.',
                     ephemeral: true
                 }).catch(() => {});
             }
         }
     }
 };
-

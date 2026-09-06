@@ -1,4 +1,3 @@
-
 import {
     getMonitoredGameServers,
     updateGameServerStatus,
@@ -22,18 +21,18 @@ class ServerMonitorService {
     constructor(client) {
         this.client = client;
 
-        // منع تشغيل أكثر من دورة مراقبة في نفس الوقت
+        // Prevent multiple monitoring cycles from running at the same time
         this.isChecking = false;
 
-        // معرف الـ interval
+        // Interval identifier
         this.interval = null;
 
-        // يمنع إرسال إشعارات عند أول فحص
+        // Prevent status alerts from being sent during the first check
         this.initializedServers = new Set();
 
         /*
-         * إذا كان Discord جاهزًا بالفعل نبدأ مباشرة.
-         * وإذا لم يكن جاهزًا، ننتظر ready.
+         * If Discord is already ready, start monitoring immediately.
+         * Otherwise, wait for the ready event.
          */
         if (this.client.isReady()) {
             this.startMonitoring();
@@ -45,7 +44,7 @@ class ServerMonitorService {
     }
 
     startMonitoring() {
-        // حماية من تشغيل الخدمة مرتين
+        // Prevent the monitoring service from being started twice
         if (this.interval) {
             logger.warn(
                 '[GameServer Monitor] Monitoring is already running.'
@@ -59,12 +58,12 @@ class ServerMonitorService {
         );
 
         /*
-         * فحص أولي مباشرة عند تشغيل البوت
+         * Run the first check immediately after startup
          */
         this.runCheck();
 
         /*
-         * الفحص الدوري
+         * Start the periodic monitoring cycle
          */
         this.interval = setInterval(() => {
             this.runCheck();
@@ -105,8 +104,8 @@ class ServerMonitorService {
             );
 
             /*
-             * نفحص السيرفرات بالتتابع حتى لا نرسل
-             * عددًا كبيرًا من الطلبات في نفس اللحظة.
+             * Check servers sequentially to avoid sending
+             * too many requests at the same time.
              */
             for (const server of servers) {
                 try {
@@ -135,8 +134,8 @@ class ServerMonitorService {
 
     async checkServer(server) {
         /*
-         * نحتفظ بالحالة السابقة قبل تحديث PostgreSQL
-         * حتى نستطيع اكتشاف:
+         * Keep the previous status before updating PostgreSQL
+         * so we can detect:
          *
          * Online -> Offline
          * Offline -> Online
@@ -144,12 +143,12 @@ class ServerMonitorService {
         const previousOnline = server.last_online;
 
         /*
-         * الاستعلام عن Game Server
+         * Query the Game Server
          */
         const serverData = await fetchServerInfo(server);
 
         /*
-         * حفظ الحالة الجديدة في PostgreSQL
+         * Save the new server status to PostgreSQL
          */
         const updatedServer = await updateGameServerStatus(
             server.id,
@@ -171,26 +170,27 @@ class ServerMonitorService {
         }
 
         /*
-         * إنشاء Embed الجديد
+         * Build the new Embeds
          */
-        const embed = buildServerEmbed(
+        const embedResult = buildServerEmbed(
             updatedServer,
             serverData
         );
 
+        const embeds = Array.isArray(embedResult)
+            ? embedResult
+            : [embedResult];
+
         /*
-         * تحديث رسالة Discord
-         *
-         * إذا كانت الرسالة محذوفة، سيتم إنشاء رسالة
-         * جديدة تلقائيًا وحفظ الـ message_id الجديد.
+         * Update the Discord message
          */
         await this.updateServerMessage(
             updatedServer,
-            embed
+            embeds
         );
 
         /*
-         * لا نرسل Alert في أول فحص.
+         * Do not send an alert during the first check.
          */
         const isFirstCheck = !this.initializedServers.has(
             server.id
@@ -214,10 +214,10 @@ class ServerMonitorService {
         );
     }
 
-    async updateServerMessage(server, embed) {
+    async updateServerMessage(server, embeds) {
         /*
-         * السيرفر يحتاج إلى channel_id و message_id
-         * حتى نستطيع تعديل الرسالة الموجودة.
+         * The server needs a channel_id and message_id
+         * so we can update the existing Discord message.
          */
         if (!server.channel_id) {
             logger.warn(
@@ -243,14 +243,13 @@ class ServerMonitorService {
             }
 
             /*
-             * إذا لم يكن هناك message_id أصلًا،
-             * ننشئ رسالة جديدة.
+             * If there is no message_id, create a new message.
              */
             if (!server.message_id) {
                 await this.createServerMessage(
                     server,
                     channel,
-                    embed
+                    embeds
                 );
 
                 return;
@@ -262,12 +261,8 @@ class ServerMonitorService {
                 );
 
                 /*
-                * إعادة بناء أزرار Game Server.
-                *
-                * هذا مهم للرسائل القديمة التي تم إنشاؤها
-                * قبل إضافة زر Delete.
-                */
-
+                 * Rebuild the Game Server buttons.
+                 */
                 const refreshButton = new ButtonBuilder()
                     .setCustomId(`refresh_server:${server.id}`)
                     .setLabel('Refresh')
@@ -302,15 +297,11 @@ class ServerMonitorService {
                     );
 
                 /*
-                * تحديث الـ Embed وإعادة إرسال الزرين.
-                *
-                * بهذه الطريقة:
-                * - الرسائل القديمة تحصل على زر Delete.
-                * - الرسائل الجديدة تبقى كما هي.
-                * - زر Delete لن يختفي عند تحديث السيرفر.
-                */
+                 * Update the Embeds and buttons.
+                 */
                 await message.edit({
-                    embeds: [embed],
+                    content: null,
+                    embeds,
                     components: [row]
                 });
 
@@ -331,7 +322,7 @@ class ServerMonitorService {
                     await this.createServerMessage(
                         server,
                         channel,
-                        embed
+                        embeds
                     );
 
                     return;
@@ -349,12 +340,11 @@ class ServerMonitorService {
         }
     }
 
-    async createServerMessage(server, channel, embed) {
+    async createServerMessage(server, channel, embeds) {
         try {
             /*
-             * زر Refresh
+             * Refresh button
              */
-            
             const refreshButton = new ButtonBuilder()
                 .setCustomId(`refresh_server:${server.id}`)
                 .setLabel('Refresh')
@@ -389,16 +379,16 @@ class ServerMonitorService {
                 );
 
             /*
-             * إرسال الرسالة الجديدة.
+             * Send the new message
              */
             const message = await channel.send({
-                embeds: [embed],
+                embeds,
                 components: [row]
             });
 
             /*
-             * حفظ channel_id و message_id الجديدين
-             * في PostgreSQL.
+             * Save the new channel_id and message_id
+             * to PostgreSQL.
              */
             await setGameServerMessage(
                 server.id,
@@ -430,14 +420,14 @@ class ServerMonitorService {
         currentOnline
     ) {
         /*
-         * لا يوجد تغيير
+         * No status change
          */
         if (previousOnline === currentOnline) {
             return;
         }
 
         /*
-         * التنبيهات معطلة لهذا السيرفر
+         * Alerts are disabled for this server
          */
         if (!server.alert_enabled) {
             logger.info(
@@ -507,7 +497,7 @@ class ServerMonitorService {
             if (status === 'online') {
                 await channel.send({
                     content:
-                        `🟢 **${server.name}** عاد للعمل!\n` +
+                        `🟢 **${server.name}** is back online!\n` +
                         `\`${server.host}:${server.port}\``
                 });
 
@@ -522,7 +512,7 @@ class ServerMonitorService {
             if (status === 'offline') {
                 await channel.send({
                     content:
-                        `🔴 **${server.name}** أصبح Offline!\n` +
+                        `🔴 **${server.name}** is now offline!\n` +
                         `\`${server.host}:${server.port}\``
                 });
 
@@ -556,4 +546,3 @@ class ServerMonitorService {
 }
 
 export default ServerMonitorService;
-

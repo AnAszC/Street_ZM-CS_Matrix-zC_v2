@@ -1,4 +1,3 @@
-
 import {
     ModalBuilder,
     TextInputBuilder,
@@ -19,7 +18,7 @@ export default {
 
         if (!serverId) {
             await interaction.reply({
-                content: '❌ معرف السيرفر غير موجود.',
+                content: '❌ Server ID is missing.',
                 ephemeral: true
             });
             return;
@@ -27,7 +26,7 @@ export default {
 
         if (!interaction.guildId) {
             await interaction.reply({
-                content: '❌ هذا الزر يمكن استخدامه داخل السيرفر فقط.',
+                content: '❌ This button can only be used inside a Discord server.',
                 ephemeral: true
             });
             return;
@@ -39,7 +38,7 @@ export default {
             )
         ) {
             await interaction.reply({
-                content: '❌ ليس لديك صلاحية حذف Game Servers.',
+                content: '❌ You do not have permission to delete Game Servers.',
                 ephemeral: true
             });
             return;
@@ -51,7 +50,7 @@ export default {
             if (!server) {
                 await interaction.reply({
                     content:
-                        '❌ لم يتم العثور على Game Server في قاعدة البيانات.',
+                        '❌ Game Server was not found in the database.',
                     ephemeral: true
                 });
                 return;
@@ -60,7 +59,7 @@ export default {
             if (server.guild_id !== interaction.guildId) {
                 await interaction.reply({
                     content:
-                        '❌ لا يمكنك حذف Game Server تابع لسيرفر Discord آخر.',
+                        '❌ You cannot delete a Game Server that belongs to another Discord server.',
                     ephemeral: true
                 });
                 return;
@@ -68,11 +67,11 @@ export default {
 
             const modal = new ModalBuilder()
                 .setCustomId(`delete_server_confirm:${server.id}`)
-                .setTitle('تأكيد حذف Game Server');
+                .setTitle('Confirm Game Server Deletion');
 
             const confirmationInput = new TextInputBuilder()
                 .setCustomId('server_id')
-                .setLabel(`اكتب Server ID (${server.id}) للتأكيد`)
+                .setLabel(`Enter Server ID (${server.id}) to confirm`)
                 .setPlaceholder(String(server.id))
                 .setStyle(TextInputStyle.Short)
                 .setRequired(true)
@@ -85,11 +84,11 @@ export default {
             modal.addComponents(row);
 
             /*
-             * عرض الـ Modal فقط.
+             * Show the confirmation modal.
              *
-             * لا نستخدم awaitModalSubmit() هنا.
-             * Discord سيرسل Modal Submit كـ Interaction مستقل،
-             * وسيتم التعامل معه بواسطة:
+             * Do not use awaitModalSubmit() here.
+             * Discord will send the Modal Submit as a separate Interaction,
+             * which will be handled by:
              *
              * modals/gameServer/delete_server_confirm.js
              */
@@ -105,16 +104,17 @@ export default {
 
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp({
-                    content: '❌ حدث خطأ أثناء فتح نافذة حذف Game Server.',
+                    content:
+                        '❌ An error occurred while opening the Game Server deletion window.',
                     ephemeral: true
                 }).catch(() => {});
             } else {
                 await interaction.reply({
-                    content: '❌ حدث خطأ أثناء فتح نافذة حذف Game Server.',
+                    content:
+                        '❌ An error occurred while opening the Game Server deletion window.',
                     ephemeral: true
                 }).catch(() => {});
             }
         }
     }
 };
-

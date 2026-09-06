@@ -1,3 +1,4 @@
+
 import gamedig from 'gamedig';
 
 const { query } = gamedig;
@@ -10,21 +11,54 @@ export async function fetchServerInfo(serverConfig) {
             port: Number(serverConfig.port)
         });
 
+        const playerList = Array.isArray(info.players)
+            ? info.players
+                .map(player => player.name)
+                .filter(Boolean)
+                .slice(0, 20)
+            : [];
+
+        const botList = Array.isArray(info.bots)
+            ? info.bots
+                .map(bot => bot.name)
+                .filter(Boolean)
+                .slice(0, 20)
+            : [];
+
         return {
             online: true,
+
             name: info.name || serverConfig.name,
-            map: info.map || 'غير معروف',
+
+            map: info.map || 'Unknown',
+
             players: Array.isArray(info.players)
                 ? info.players.length
                 : 0,
+
             maxPlayers: info.maxplayers || 0,
-            playerList: Array.isArray(info.players)
-                ? info.players
-                    .map(player => player.name)
-                    .filter(Boolean)
-                    .slice(0, 20)
-                : [],
-            ping: info.ping || null
+
+            playerList,
+
+            bots: botList,
+
+            botList,
+
+            botCount: botList.length,
+
+            ping: info.ping || null,
+
+            connect:
+                info.connect ||
+                `${serverConfig.host || serverConfig.ip}:${Number(serverConfig.port)}`,
+
+            // Will be populated later by GeoIP
+            country: null,
+            countryCode: null,
+            countryFlag: null,
+
+            // Keep the raw data in case additional information is needed later
+            raw: info.raw || null
         };
     } catch (error) {
         console.error(
@@ -34,12 +68,36 @@ export async function fetchServerInfo(serverConfig) {
 
         return {
             online: false,
+
             name: serverConfig.name || 'Game Server',
-            map: 'غير متاح',
+
+            map: 'Unavailable',
+
             players: 0,
+
             maxPlayers: 0,
+
             playerList: [],
-            ping: null
+
+            bots: [],
+
+            botList: [],
+
+            botCount: 0,
+
+            ping: null,
+
+            connect:
+                serverConfig.host || serverConfig.ip
+                    ? `${serverConfig.host || serverConfig.ip}:${Number(serverConfig.port)}`
+                    : null,
+
+            country: null,
+            countryCode: null,
+            countryFlag: null,
+
+            raw: null
         };
     }
 }
+

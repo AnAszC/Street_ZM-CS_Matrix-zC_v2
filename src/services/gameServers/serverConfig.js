@@ -1,4 +1,8 @@
 export const gameServerConfig = {
+    // معلومات النظام
+    name: 'CSMatrix-zC | Game Server Monitor',
+    version: '3.2.0',
+
     // فحص الخوادم كل 5 دقائق
     updateInterval: 300000,
 

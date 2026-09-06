@@ -1,5 +1,8 @@
+import {
+    getGameServerById,
+    updateGameServer
+} from '../../../services/gameServers/gameServerDatabase.js';
 
-import { getGameServerById, updateGameServer } from '../../../services/gameServers/gameServerDatabase.js';
 import { fetchServerInfo } from '../../../services/gameServers/gameQueryService.js';
 import { buildServerEmbed } from '../../../services/gameServers/serverEmbed.js';
 
@@ -11,7 +14,7 @@ export default {
 
         if (!serverId) {
             await interaction.reply({
-                content: '❌ معرف السيرفر غير موجود.',
+                content: '❌ Server ID is missing.',
                 ephemeral: true
             });
             return;
@@ -24,48 +27,85 @@ export default {
 
             if (!server) {
                 await interaction.editReply({
-                    content: '❌ لم يتم العثور على السيرفر في قاعدة البيانات.',
+                    content: '❌ Server was not found in the database.',
                     embeds: [],
                     components: []
                 });
                 return;
             }
 
+            /*
+             * Toggle list visibility
+             *
+             * true  = Show Player List + Bot List
+             * false = Hide Player List + Bot List
+             */
             const newShowPlayers = server.show_players === false;
 
-            const updatedServer = await updateGameServer(server.id, {
-                showPlayers: newShowPlayers
-            });
+            const updatedServer = await updateGameServer(
+                server.id,
+                {
+                    showPlayers: newShowPlayers
+                }
+            );
 
             if (!updatedServer) {
                 await interaction.editReply({
-                    content: '❌ تعذر تحديث إعدادات عرض اللاعبين.',
+                    content: '❌ Failed to update player display settings.',
                     embeds: [],
                     components: []
                 });
                 return;
             }
 
+            /*
+             * Fetch the server data again
+             */
             const serverData = await fetchServerInfo(updatedServer);
 
-            const embed = buildServerEmbed(
+            /*
+             * buildServerEmbed now returns:
+             *
+             * [Main Embed, Lists Embed]
+             *
+             * or:
+             *
+             * [Main Embed]
+             *
+             * when the lists are hidden.
+             */
+            const embeds = buildServerEmbed(
                 updatedServer,
                 serverData
             );
 
+            /*
+             * Find the existing buttons
+             */
             const refreshButton = interaction.message.components[0]
                 ?.components.find(
-                    button => button.customId === `refresh_server:${server.id}`
+                    button =>
+                        button.customId === `refresh_server:${server.id}`
                 );
 
             const deleteButton = interaction.message.components[0]
                 ?.components.find(
-                    button => button.customId === `delete_server:${server.id}`
+                    button =>
+                        button.customId === `delete_server:${server.id}`
                 );
 
+            /*
+             * Rebuild the button row while preserving:
+             * Refresh
+             * Show / Hide Players
+             * Delete
+             */
             if (refreshButton && deleteButton) {
-                const { ActionRowBuilder, ButtonBuilder, ButtonStyle } =
-                    await import('discord.js');
+                const {
+                    ActionRowBuilder,
+                    ButtonBuilder,
+                    ButtonStyle
+                } = await import('discord.js');
 
                 const playersButton = new ButtonBuilder()
                     .setCustomId(`toggle_players:${server.id}`)
@@ -89,15 +129,18 @@ export default {
                     );
 
                 await interaction.editReply({
-                    embeds: [embed],
+                    embeds,
                     components: [row]
                 });
 
                 return;
             }
 
+            /*
+             * If the existing buttons could not be found
+             */
             await interaction.editReply({
-                embeds: [embed]
+                embeds
             });
 
         } catch (error) {
@@ -107,11 +150,11 @@ export default {
             );
 
             await interaction.editReply({
-                content: '❌ حدث خطأ أثناء تغيير إعدادات عرض اللاعبين.',
+                content:
+                    '❌ An error occurred while changing player display settings.',
                 embeds: [],
                 components: []
             });
         }
     }
 };
-

@@ -1,286 +1,422 @@
-# TitanBot - Ultimate Discord Bot
+# CSMatrix-zC - FuZZy ComManDer
 
-**TitanBot** is a powerful, feature-rich Discord bot designed to enhance your server experience with comprehensive moderation tools, engaging economy systems, utility features, and much more. Built with modern Discord.js v14 and PostgreSQL for optimal performance and data persistence.
+**CSMatrix-zC - FuZZy ComManDer (AnAs.zC)** is a feature-rich Discord bot project derived from [TitanBot](https://github.com/codebymitch/TitanBot) and customized for the CSMatrix-zC ecosystem.
 
-[![Support Server](https://img.shields.io/badge/-Support%20Server-%235865F2?logo=discord&logoColor=white&style=flat-square&logoWidth=20)](https://discord.gg/8kJBYhTGW9)
-[![Discord.js](https://img.shields.io/npm/v/discord.js?style=flat-square&labelColor=%23202225&color=%23202225&logo=npm&logoColor=white&logoWidth=20)](https://www.npmjs.com/package/discord.js)
-![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-%23336791?logo=postgresql&logoColor=white&style=flat-square&logoWidth=20)
+The project provides moderation, community, utility, economy, ticketing, leveling, music, server statistics, game server monitoring, and other tools for Discord communities.
+
+Built with modern **Discord.js v14**, **Node.js 20+**, **PostgreSQL**, and Docker-based deployment.
+
+[![Discord.js](https://img.shields.io/npm/v/discord.js?style=flat-square\&label=Discord.js\&logo=discord)](https://www.npmjs.com/package/discord.js)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-brightgreen?style=flat-square\&logo=node.js)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-supported-336791?style=flat-square\&logo=postgresql)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
 ## Table of Contents
 
-- [Features Overview](#features-overview)
-- [Quick Setup](#quick-setup)
-- [Manual Installation Steps](#manual-installation-steps)
-- [Support Server](https://discord.gg/QnWNz2dKCE)
-- [Required Bot Intents](#bot-intents)
-- [Contributing](CONTRIBUTING.md)
+* [Features Overview](#features-overview)
+* [Game Server Monitor](#game-server-monitor)
+* [Quick Setup](#quick-setup)
+* [Manual Installation](#manual-installation)
+* [Required Bot Intents](#required-bot-intents)
+* [Project Structure](#project-structure)
+* [License](#license)
+* [Credits](#credits)
 
-<a name="features-overview"></a>
 ## Features Overview
 
-TitanBot offers a complete suite of tools for Discord server management and community engagement:
-
-<table>
-<tr>
-<td width="50%" valign="top">
+CSMatrix-zC includes a broad set of Discord server management and community features.
 
 ### Moderation & Administration
-- **Mass Actions** - Bulk ban/kick capabilities
-- **User Notes** - Keep detailed moderation records
-- **Case Management** - View and track all mod actions
 
-### Economy System
-- **Shop & Inventory** - Buy and manage items
-- **Gambling** - Risk it for rewards
-- **Pay System** - Transfer money between users
+* Mass ban and kick actions
+* User notes and moderation records
+* Case management
+* Member moderation tools
+* Permission-based administration
 
-### Fun & Entertainment
-- **Random Facts** - Learn something new
-- **Wanted Poster** - Create fun wanted images
-- **Text Reversal** - Reverse any text
+### Community
 
-### Advanced Ticket System
-- **Claim & Priority** - Staff ticket management
-- **Ticket Limits** - Prevent spam
-- **Transcript System** - Save ticket history
+* Community management tools
+* Application systems
+* Dashboards and configuration panels
+* Server utilities
 
-### Server Stats
-- **Member Counter** - Live member count channels
-- **Voice Counters** - Track voice stats
-- **Dynamic Updates** - Real-time channel updates
+### Economy
+
+* Shop and inventory
+* Currency and transfers
+* Economy configuration
+* Economy-related activities
+
+### Tickets
+
+* Ticket creation and management
+* Claim and priority systems
+* Ticket limits
+* Transcript support
+* Staff workflows
+
+### Server Statistics
+
+* Member counters
+* Voice statistics
+* Dynamic channel updates
+* Server activity information
+
+### Verification
+
+* Member verification flows
+* Verification panels
+* Permission-aware verification handling
 
 ### Reaction Roles
-- **Role Assignment** - Self-assignable roles
-- **Emoji Selection** - Reaction-based system
-- **Multi-role Support** - Multiple role options
 
-</td>
-<td width="50%" valign="top">
+* Self-assignable roles
+* Reaction-based role selection
+* Multi-role support
 
-### Leveling & XP System
-- **XP Tracking** - Automatic message-based XP
-- **Level Roles** - Auto-assign roles by level
-- **Custom Configuration** - Personalize leveling
+### Leveling
 
-### Giveaways & Events
-- **Multiple Winners** - Support multi-winner giveaways
-- **Auto Picking** - Automatic winner selection
-- **Reroll System** - Pick new winners if needed
+* XP tracking
+* Level roles
+* Automatic role synchronization
+* Configurable leveling behavior
+
+### Giveaways
+
+* Multiple winners
+* Automatic winner selection
+* Rerolls
+* Event management
 
 ### Birthday System
-- **Birthday Tracking** - Never miss a birthday
-- **Auto Announcements** - Celebrate automatically
-- **Timezone Support** - Accurate worldwide tracking
 
-### Utility Tools
-- **Report System** - Report issues to staff
-- **Todo Lists** - Personal task management
-- **First Message** - Jump to channel's first message
+* Birthday tracking
+* Automatic birthday announcements
+* Timezone-aware scheduling
 
-### Welcome System
-- **Welcome Messages** - Greet new members
-- **Auto Roles** - Assign roles on join
-- **Custom Embeds** - Personalized messages
-  
-### Music
-- **24/7 Mode** - Play music 24/7
-- **Interative Button System** - Manage music through buttons
-- **Supports EVERY platform** - Supports spotify, deezer, youtube, apple music
-  
-</td>
-</tr>
-</table>
+### Utility
 
-<a name="quick-setup"></a>
-## Quick Setup (Recommended for non-coders)
+* Reports
+* Todo tools
+* First-message navigation
+* General server utilities
 
-### Video Tutorial
-For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
-[**TitanBot Setup Tutorial**](https://www.youtube.com/@TouchDisc)
+### Welcome
 
-## Docker Deployment (Recommended)
-
-TitanBot is fully containerized for easy deployment.
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/codebymitch/TitanBot.git
-   cd TitanBot
-   ```
-
-2. **Configure environment variables:**
-   ```bash
-   cp .env.example .env
-   ```
-   Set at minimum `DISCORD_TOKEN`, `CLIENT_ID`, and `GUILD_ID`. Docker Compose also reads `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env` (defaults: `titanbot` / `password` / `titanbot`).
-
-3. **Build and start the containers:**
-   ```bash
-   docker compose up -d --build
-   ```
-
-4. **Check status:**
-   ```bash
-   docker compose ps
-   curl http://localhost:3000/health
-   ```
-
-This starts the bot and PostgreSQL. The compose file sets `POSTGRES_SSL=false` and `AUTO_MIGRATE=true` for the bundled database. Music uses public Lavalink v4 nodes from `lavalink/nodes.json` by default.
+* Welcome messages
+* Automatic roles
+* Custom welcome embeds
 
 ### Music
 
-Music uses [Lavalink v4](https://github.com/lavalink-devs/Lavalink) via [Riffy](https://github.com/riffy-rb/riffy), similar to [Musicify](https://github.com/codebymitch/Musicify).
+* Lavalink v4 support
+* Queue and playback controls
+* Interactive music buttons
+* Multiple source/platform support
+* 24/7 playback mode
 
-1. By default, the bot loads multiple public v4 SSL nodes from [`lavalink/nodes.json`](lavalink/nodes.json) (sourced from [lavalink.darrennathanael.com](https://lavalink.darrennathanael.com/SSL/Lavalink-SSL/)). Edit that file to add or remove nodes.
-2. To self-host Lavalink instead, run `docker compose --profile local-lavalink up -d` and set single-node env vars in `.env`:
-   ```env
-   LAVALINK_HOST=lavalink
-   LAVALINK_PORT=2333
-   LAVALINK_PASSWORD=youshallnotpass
-   LAVALINK_SECURE=false
-   ```
-   Remove or rename `lavalink/nodes.json` so the bot falls back to those env vars.
-3. Override nodes inline with `LAVALINK_NODES` (JSON array) or point at another file with `LAVALINK_NODES_FILE`.
-4. Use `/play <song>` from a voice channel, or `/join` to connect without playing. Prefix shortcuts: `join`, `np`, `leave`, `pause`, `resume`, `skip`, `stop`, `volume <0-100>`, or `music <subcommand>`. Use `/nowplaying` and `/queue` for status; `/music` for loop, shuffle, seek, and other controls.
+## Game Server Monitor
 
-### Using GitHub Container Registry
+The **Game Server Monitor** is a custom CSMatrix-zC feature for monitoring and displaying live game server information in Discord.
 
-The bot is automatically published to GitHub Container Registry on every push to main.
+### Current Commands
 
-```bash
-docker pull ghcr.io/codebymitch/titanbot:main
+```text
+/gameserver add
+/gameserver edit
 ```
 
-<a name="manual-installation-steps"></a>
-## Manual Installation Steps
+### Game Server Features
+
+* Add game servers through a Discord modal
+* Store server configuration in PostgreSQL
+* Query live server information with Gamedig
+* Display Online / Offline status
+* Display current map
+* Display player count
+* Display bot count
+* Display player names
+* Display bot names
+* Generate a Discord invite for the configured server channel
+* Automatically update the monitor message
+* Online / Offline alert channel support
+* Automatic periodic monitoring
+* Move a Game Server monitor to another Discord channel
+* Delete the old monitor message when moving a server
+
+### Game Server Message
+
+The monitor uses a multi-embed layout:
+
+**Embed 1**
+
+* Server information
+* Server Manager
+* Connect address
+* Status
+* Address
+* Country
+* Game
+* Current Map
+* Players
+* Bots
+* Discord invite
+* Game Server Monitor version
+* Server ID
+
+**Embed 2**
+
+* Player List
+* Visual separator
+* Bot List
+
+Player and bot names are displayed as normal lists rather than a table.
+
+### Game Server Buttons
+
+Each Game Server monitor can include:
+
+* **Refresh** — refresh live server information
+* **Show Players / Hide Players** — toggle both Player List and Bot List
+* **Delete** — open the Game Server deletion confirmation flow
+
+### Game Server Monitor Version
+
+```text
+3.2.0
+```
+
+The Game Server Monitor version is maintained independently from the main bot package version.
+
+## Quick Setup
 
 ### Prerequisites
-- Node.js 20.10.0 or higher
-- PostgreSQL server (recommended) or memory storage fallback
-- Discord bot application with proper intents
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/codebymitch/TitanBot.git
-   cd TitanBot
-   ```
+* Node.js 20.10.0 or higher
+* Docker and Docker Compose
+* Discord Bot Application
+* PostgreSQL (recommended)
+* A Discord application with the required intents and permissions
 
-2. **Install Dependencies**
-   ```bash
-   npm install
-   ```
+### Docker Deployment
 
-3. **Configure Environment Variables**
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` with your configuration (only the following variables require configuration, leave remaining variables as default):
-   ```env
-   # Discord Bot Configuration
-   DISCORD_TOKEN=your_discord_bot_token_here
-   CLIENT_ID=your_discord_client_id_here
-   GUILD_ID=your_discord_guild_id_here
+Docker is the recommended deployment method.
 
-   # PostgreSQL Configuration (Primary Database)
-   POSTGRES_URL=postgresql://postgres:yourpassword@localhost:5432/titanbot
-   POSTGRES_HOST=localhost
-   POSTGRES_PORT=5432
-   POSTGRES_DB=titanbot
-   POSTGRES_USER=postgres
-   POSTGRES_PASSWORD=yourpassword
-   ```
+1. Clone the repository:
 
-   Production note:
-   - `NODE_ENV=production`
-   - `LOG_LEVEL=warn` for a clean production console (critical issues + startup status)
-   - `LOG_LEVEL=info` if you want more detailed operational logs
-   - If your chosen `PORT` is already used, TitanBot automatically tries the next port(s)
+```bash
+git clone https://github.com/AnAszC/Street_ZM-CS_Matrix-zC_v2.git
+cd Street_ZM-CS_Matrix-zC_v2
+```
 
-   Environment options reference:
-   - `NODE_ENV`: `development`, `production`, `test` (any non-`production` value is treated as non-production)
-   - `LOG_LEVEL`: `error`, `warn`, `info`, `http`, `verbose`, `debug`, `silly`
-   - Accepted aliases for `LOG_LEVEL` in this bot: `warns`, `warning`, `warnings` → `warn`
+2. Create your environment file:
 
-   Recommended production `.env` (easy mode + default mode):
-   ```env
-   NODE_ENV=production
-   LOG_LEVEL=warn
-   WEB_HOST=0.0.0.0
-   PORT=3000
-   PORT_RETRY_ATTEMPTS=5
-   ```
-   This gives clear startup/online status messages while keeping logs simple for non-technical operators.
-   If port `3000` is busy, the bot tries the next available ports automatically (up to `PORT_RETRY_ATTEMPTS`).
+```bash
+cp .env.example .env
+```
 
-### Multiple servers
+3. Configure at minimum:
 
-Slash commands are registered **globally** on startup (via `CLIENT_ID`), so the bot works in every server it is invited to. `GUILD_ID` stays in the tutorial `.env` for setup steps but is not used for command registration.
+```env
+DISCORD_TOKEN=your_discord_bot_token
+CLIENT_ID=your_discord_client_id
+GUILD_ID=your_discord_guild_id
+```
 
-Notes:
-- Global slash commands may take up to about an hour to propagate on first deploy
-- Each server has **isolated** data: config, economy, tickets, leveling, dashboards, warnings, etc. (all keys are scoped as `guild:{guildId}:...`)
-- In the [Discord Developer Portal](https://discord.com/developers/applications), ensure your bot is not restricted to a single guild if you plan to invite it elsewhere
-- Generate an OAuth2 invite URL from the [Discord Developer Portal](https://discord.com/developers/applications) (OAuth2 → URL Generator, scopes: `bot` and `applications.commands`)
+Configure PostgreSQL values as required by your deployment.
 
-4. **Setup PostgreSQL Database** (Optional but recommended)
-   ```bash
-   # Create database and user
-   createdb titanbot
-   createuser titanbot
-   psql -c "ALTER USER titanbot PASSWORD 'yourpassword';"
-   psql -c "GRANT ALL PRIVILEGES ON DATABASE titanbot TO titanbot;"
-   ```
+4. Build and start the bot:
 
-5. **Verify Database Setup**
-   ```bash
-   npm run migrate:check
-   ```
+```bash
+docker compose up -d --build
+```
 
-6. **Start the Bot**
-   ```bash
-   npm start
-   ```
+5. Check container status:
 
-> **Note on database migrations:** Schema tables and legacy key migrations run
-> **automatically on startup**, so` managed hosts like **Railway** need no manual
-> migration step — just deploy/restart. To disable auto-migration set
-> `AUTO_MIGRATE=false`. You can still run a manual key migration locally with
-> `node scripts/migrate-keys.js --dry-run` (preview) or `node scripts/migrate-keys.js`.
-<a name="bot-intents"></a>
+```bash
+docker compose ps
+```
+
+6. Check the web health endpoint:
+
+```bash
+curl http://localhost:3000/health
+```
+
+### Development / Local Restart
+
+After modifying bot source files:
+
+```bash
+docker compose build bot
+docker compose up -d bot
+docker compose logs -f bot
+```
+
+## PostgreSQL
+
+PostgreSQL is the primary persistent database.
+
+The project supports persistent storage for features such as:
+
+* Game Servers
+* Tickets
+* Economy
+* Leveling
+* Server configuration
+* Other guild-scoped data
+
+Do not expose PostgreSQL directly to the public Internet.
+
+Use strong credentials and restrict database network access to trusted systems.
+
+## Slash Commands
+
+Slash commands are registered globally through the Discord API.
+
+The project currently uses a command loader that:
+
+* Discovers command files under `src/commands`
+* Loads unique primary command names
+* Supports nested subcommands
+* Validates command definitions
+* Registers commands globally
+* Can clear previously registered global commands before registration when configured
+
+### Command Limit
+
+Discord has a limit of **100 global top-level application commands**.
+
+Subcommands are contained within their parent command and do not consume additional top-level command slots in the same way.
 
 ## Required Bot Intents
-TitanBot requires the following Discord intents:
-- **Guilds**
-- **Guild Messages**
-- **Message Content**
-- **Guild Members**
-- **Guild Message Reactions**
-- **Guild Voice States**
-- **Direct Messages**
-- **Bot**
-- **Applications.commands**
 
-### Required Permissions
-- **View Channels**
-- **Send Messages**
-- **Embed Links**
-- **Attach Files**
-- **Read Message History**
-- **Manage Messages**
-- **Manage Channels**
-- **Manage Roles**
-- **Kick Members**
-- **Manage Messages**
-- **Ban Members**
-- **Moderate Members**
-- **Connect**
+The bot may require the following intents depending on the enabled features:
+
+* Guilds
+* Guild Messages
+* Message Content
+* Guild Members
+* Guild Message Reactions
+* Guild Voice States
+* Direct Messages
+
+The exact requirements may vary depending on the features enabled in your deployment.
+
+## Required Permissions
+
+Recommended permissions include only those required by the enabled features:
+
+* View Channels
+* Send Messages
+* Embed Links
+* Attach Files
+* Read Message History
+* Manage Messages
+* Manage Channels
+* Manage Roles
+* Kick Members
+* Ban Members
+* Moderate Members
+* Connect
+
+Do not grant permissions that your deployment does not require.
+
+## Project Structure
+
+```text
+src/
+├── commands/
+│   ├── Core/
+│   ├── Community/
+│   ├── Economy/
+│   ├── GameServers/
+│   │   └── gameservers.js
+│   ├── Giveaway/
+│   ├── Leveling/
+│   ├── Logging/
+│   ├── Moderation/
+│   ├── Music/
+│   ├── Reaction_roles/
+│   ├── ServerStats/
+│   ├── Ticket/
+│   ├── Utility/
+│   ├── Verification/
+│   ├── Welcome/
+│   └── ...
+│
+├── config/
+├── events/
+├── handlers/
+├── interactions/
+│   ├── buttons/
+│   │   └── gameServer/
+│   │       ├── refresh_server.js
+│   │       ├── toggle_players.js
+│   │       └── delete_server.js
+│   │
+│   └── modals/
+│       └── gameServer/
+│           ├── gameserver_add.js
+│           └── delete_server_confirm.js
+│
+├── services/
+│   ├── discord/
+│   │   └── discordInviteService.js
+│   │
+│   └── gameServers/
+│       ├── gameServerDatabase.js
+│       ├── gameQueryService.js
+│       ├── serverConfig.js
+│       ├── serverEmbed.js
+│       └── serverMonitorService.js
+│
+└── utils/
+```
+
+## Security
+
+Security information and vulnerability reporting instructions are available in:
+
+```text
+SECURITY.md
+```
+
+Never commit:
+
+* Discord bot tokens
+* Database passwords
+* API keys
+* Webhook secrets
+* Private credentials
+* Production `.env` files
 
 ## License
 
-TitanBot is released under the MIT License. See [LICENSE](LICENSE) for details.
+CSMatrix-zC is distributed under the **MIT License**.
+
+See [LICENSE](LICENSE) for the complete license text and attribution information.
+
+## Credits
+
+CSMatrix-zC is derived from the **TitanBot** project.
+
+Original project:
+
+https://github.com/codebymitch/TitanBot
+
+CSMatrix-zC project:
+
+https://github.com/AnAszC/Street_ZM-CS_Matrix-zC_v2
+
+Original and project-specific copyright and licensing information is maintained in `LICENSE`.
 
 ## Thank You
 
-Thank you for choosing TitanBot for your Discord server! We're constantly working to improve and add new features based on community feedback.
+Thank you for using and contributing to **CSMatrix-zC - FuZZy ComManDer**.
 
-*Last updated: May 2026*
+The project is continuously evolving with new features, improvements, and integrations for the CSMatrix-zC ecosystem.
+
+*Last updated: September 2026*
+

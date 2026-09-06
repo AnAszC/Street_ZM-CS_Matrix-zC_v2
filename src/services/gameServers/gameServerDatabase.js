@@ -25,6 +25,7 @@ export async function getGameServerById(serverId) {
             channel_id,
             message_id,
             alert_channel_id,
+            discord_invite,
             monitor_enabled,
             alert_enabled,
             show_players,
@@ -67,6 +68,7 @@ export async function getGameServersByGuild(guildId) {
             channel_id,
             message_id,
             alert_channel_id,
+            discord_invite,
             monitor_enabled,
             alert_enabled,
             show_players,
@@ -100,6 +102,7 @@ export async function createGameServer({
     emoji = '🎮',
     channelId = null,
     messageId = null,
+    discordInvite = null,
     monitorEnabled = true,
     alertEnabled = true
 }) {
@@ -118,10 +121,11 @@ export async function createGameServer({
             emoji,
             channel_id,
             message_id,
+            discord_invite,
             monitor_enabled,
             alert_enabled
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
         `,
         [
@@ -133,6 +137,7 @@ export async function createGameServer({
             emoji,
             channelId,
             messageId,
+            discordInvite,
             monitorEnabled,
             alertEnabled
         ]
@@ -166,6 +171,7 @@ export async function updateGameServer(serverId, updates = {}) {
         channelId: 'channel_id',
         messageId: 'message_id',
         alertChannelId: 'alert_channel_id',
+        discordInvite: 'discord_invite',
         monitorEnabled: 'monitor_enabled',
         alertEnabled: 'alert_enabled',
         showPlayers: 'show_players'

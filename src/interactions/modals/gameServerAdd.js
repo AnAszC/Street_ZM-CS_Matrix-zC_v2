@@ -1,4 +1,3 @@
-
 import {
     ActionRowBuilder,
     ButtonBuilder,
@@ -8,27 +7,29 @@ import {
 import {
     createGameServer,
     findGameServerByAddress,
-    setGameServerMessage
+    setGameServerMessage,
+    updateGameServer
 } from '../../services/gameServers/gameServerDatabase.js';
 
 import { fetchServerInfo } from '../../services/gameServers/gameQueryService.js';
 import { buildServerEmbed } from '../../services/gameServers/serverEmbed.js';
+import { createDiscordChannelInvite } from '../../services/discord/discordInviteService.js';
 
 export default {
     name: 'gameserver_add',
 
     async execute(interaction, client, args) {
         try {
-            // يجب أن يكون الأمر داخل Discord Server
+            // The command must be used inside a Discord server
             if (!interaction.guildId) {
                 await interaction.reply({
-                    content: '❌ هذا الأمر لا يمكن استخدامه داخل الرسائل الخاصة.',
+                    content: '❌ This command cannot be used inside DMs.',
                     ephemeral: true
                 });
                 return;
             }
 
-            // قراءة بيانات الـ Modal
+            // Read modal data
             const name = interaction.fields
                 .getTextInputValue('server_name')
                 .trim();
@@ -57,7 +58,7 @@ export default {
                     emoji = emojiValue;
                 }
             } catch {
-                // Emoji اختياري
+                // Emoji is optional
             }
 
             // =========================
@@ -66,7 +67,7 @@ export default {
 
             if (!name) {
                 await interaction.reply({
-                    content: '❌ يجب إدخال اسم السيرفر.',
+                    content: '❌ You must enter a server name.',
                     ephemeral: true
                 });
                 return;
@@ -74,7 +75,7 @@ export default {
 
             if (!host) {
                 await interaction.reply({
-                    content: '❌ يجب إدخال IP أو Host السيرفر.',
+                    content: '❌ You must enter the server IP or Host.',
                     ephemeral: true
                 });
                 return;
@@ -89,8 +90,8 @@ export default {
             ) {
                 await interaction.reply({
                     content:
-                        '❌ Port غير صالح.\n' +
-                        'يجب أن يكون رقمًا بين `1` و `65535`.',
+                        '❌ Invalid Port.\n' +
+                        'The port must be a number between `1` and `65535`.',
                     ephemeral: true
                 });
                 return;
@@ -98,13 +99,13 @@ export default {
 
             if (!gameType) {
                 await interaction.reply({
-                    content: '❌ يجب إدخال نوع اللعبة.',
+                    content: '❌ You must enter the game type.',
                     ephemeral: true
                 });
                 return;
             }
 
-            // GameDig يدعم cs16 لـ Counter-Strike 1.6
+            // GameDig supports cs16 for Counter-Strike 1.6
             const supportedGameTypes = [
                 'cs16'
             ];
@@ -112,8 +113,8 @@ export default {
             if (!supportedGameTypes.includes(gameType)) {
                 await interaction.reply({
                     content:
-                        '❌ نوع اللعبة غير مدعوم حاليًا.\n\n' +
-                        'الأنواع المتاحة حاليًا:\n' +
+                        '❌ This game type is not currently supported.\n\n' +
+                        'Currently supported types:\n' +
                         '`cs16` — Counter-Strike 1.6',
                     ephemeral: true
                 });
@@ -121,7 +122,7 @@ export default {
             }
 
             // =========================
-            // منع السيرفر المكرر
+            // Prevent Duplicate Servers
             // =========================
 
             const existingServer = await findGameServerByAddress(
@@ -133,7 +134,7 @@ export default {
             if (existingServer) {
                 await interaction.reply({
                     content:
-                        '⚠️ هذا السيرفر موجود بالفعل في قاعدة البيانات.\n\n' +
+                        '⚠️ This server already exists in the database.\n\n' +
                         `**Server:** ${existingServer.name}\n` +
                         `**Address:** \`${existingServer.host}:${existingServer.port}\`\n` +
                         `**ID:** \`${existingServer.id}\``,
@@ -143,7 +144,7 @@ export default {
             }
 
             // =========================
-            // إنشاء السيرفر في PostgreSQL
+            // Create Server in PostgreSQL
             // =========================
 
             const server = await createGameServer({
@@ -158,54 +159,75 @@ export default {
             });
 
             // =========================
-            // فحص السيرفر مباشرة
+            // Query Server Immediately
             // =========================
 
             const serverData = await fetchServerInfo(server);
 
             // =========================
-            // إنشاء Embed
+            // Build Embeds
             // =========================
 
-            const embed = buildServerEmbed(
+            const embedResult = buildServerEmbed(
                 server,
                 serverData
             );
 
+            const embeds = Array.isArray(embedResult)
+                ? embedResult
+                : [embedResult];
+
             // =========================
-            // أزرار Game Server
+            // Game Server Buttons
             // =========================
 
             const refreshButton = new ButtonBuilder()
                 .setCustomId(`refresh_server:${server.id}`)
-                .setLabel('🔄 تحديث')
+                .setLabel('Refresh')
+                .setEmoji('🔄')
+                .setStyle(ButtonStyle.Secondary);
+
+            const playersButton = new ButtonBuilder()
+                .setCustomId(`toggle_players:${server.id}`)
+                .setLabel(
+                    server.show_players === false
+                        ? 'Show Players'
+                        : 'Hide Players'
+                )
+                .setEmoji(
+                    server.show_players === false
+                        ? '👥'
+                        : '🙈'
+                )
                 .setStyle(ButtonStyle.Primary);
 
             const deleteButton = new ButtonBuilder()
                 .setCustomId(`delete_server:${server.id}`)
-                .setLabel('🗑️ حذف')
+                .setLabel('Delete')
+                .setEmoji('🗑️')
                 .setStyle(ButtonStyle.Danger);
 
             const row = new ActionRowBuilder()
                 .addComponents(
                     refreshButton,
+                    playersButton,
                     deleteButton
                 );
 
             // =========================
-            // إرسال الرسالة
+            // Send Message
             // =========================
 
             const message = await interaction.reply({
                 content:
-                    `✅ تم إضافة السيرفر **${server.name}** بنجاح.`,
-                embeds: [embed],
+                    `✅ Game Server **${server.name}** was added successfully.`,
+                embeds,
                 components: [row],
                 fetchReply: true
             });
 
             // =========================
-            // حفظ Channel ID + Message ID
+            // Save Channel ID + Message ID
             // =========================
 
             await setGameServerMessage(
@@ -213,6 +235,52 @@ export default {
                 interaction.channelId,
                 message.id
             );
+
+            // =========================
+            // Create Discord Invite
+            // =========================
+
+            const discordInvite = await createDiscordChannelInvite(
+                interaction.channel
+            );
+
+            if (discordInvite) {
+                // Save the invite URL in the database
+                const updatedServer = await updateGameServer(
+                    server.id,
+                    {
+                        discordInvite
+                    }
+                );
+
+                // Rebuild the Embeds after adding the Discord invite
+                const updatedEmbedResult = buildServerEmbed(
+                    updatedServer || {
+                        ...server,
+                        discord_invite: discordInvite
+                    },
+                    serverData
+                );
+
+                const updatedEmbeds = Array.isArray(updatedEmbedResult)
+                    ? updatedEmbedResult
+                    : [updatedEmbedResult];
+
+                // Update the message to display the Discord invite
+                await message.edit({
+                    content: null,
+                    embeds: updatedEmbeds,
+                    components: [row]
+                });
+
+                console.log(
+                    `[GameServer] Discord invite created for server #${server.id}: ${discordInvite}`
+                );
+            } else {
+                console.warn(
+                    `[GameServer] Could not create Discord invite for server #${server.id}.`
+                );
+            }
 
             console.log(
                 `[GameServer] Added server #${server.id} ` +
@@ -226,29 +294,28 @@ export default {
                 error
             );
 
-            // في حالة حدوث خطأ قبل الرد
+            // If an error occurs before replying
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({
                     content:
-                        '❌ حدث خطأ أثناء إضافة Game Server.\n' +
-                        'تحقق من بيانات السيرفر وحاول مرة أخرى.',
+                        '❌ An error occurred while adding the Game Server.\n' +
+                        'Please check the server information and try again.',
                     ephemeral: true
                 });
 
                 return;
             }
 
-            // في حالة أن Interaction تم الرد عليه مسبقًا
+            // If the interaction has already been replied to
             try {
                 await interaction.followUp({
                     content:
-                        '❌ حدث خطأ أثناء حفظ بيانات Game Server.',
+                        '❌ An error occurred while saving the Game Server data.',
                     ephemeral: true
                 });
             } catch {
-                // تجاهل خطأ الرد الإضافي
+                // Ignore follow-up response errors
             }
         }
     }
 };
-

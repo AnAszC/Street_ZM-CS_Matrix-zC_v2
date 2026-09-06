@@ -1,59 +1,114 @@
-TitanBot Roadmap / Structure Overview
+# TitanBot Roadmap / Structure Overview
 
-Goal
-- Keep this as a practical map of the codebase.
-- Show main folders and important files only (not every file).
+## Goal
 
-Root
-- index.js                    -> process entry point
-- package.json                -> scripts, dependencies, project metadata
-- README.md                   -> setup and usage docs
-- SECURITY.md                 -> security policy
-- scripts/                    -> utility/maintenance scripts (backup, restore, migrate)
-- logs/                       -> runtime log output
-- src/                        -> main bot application code
-- tests/                      -> unit tests (run via npm test)
+* Keep this as a practical map of the codebase.
+* Show main folders and important files only (not every file).
 
-src/
-- app.js                      -> creates client, initializes systems, starts web server
+## Root
 
-- commands/                   -> slash command categories by feature
-  - Core/                     -> help, ping, stats, uptime, invite
-  - Community/                -> application management + dashboards
-  - Logging/                  -> audit logging + event management
-    - modules/logging_dashboard.js
-    - modules/logging_setchannel.js
-  - Ticket/                   -> support ticket system + dashboard
-  - ServerStats/              -> server stats channel system
-  - Economy/                  -> economy system
-  - Moderation/               -> moderation/admin commands
-  - Verification/             -> member verification flow
-  - JoinToCreate/             -> dynamic voice channel creation
-  - Reaction_roles/           -> automatic role assignment
-  - Birthday/, Fun/, Giveaway/, Leveling/, Search/, Tools/, Utility/, Welcome/
+* `index.js`                    -> process entry point
+* `package.json`                -> scripts, dependencies, project metadata
+* `README.md`                   -> setup and usage docs
+* `SECURITY.md`                 -> security policy
+* `scripts/`                    -> utility/maintenance scripts (backup, restore, migrate)
+* `logs/`                       -> runtime log output
+* `src/`                        -> main bot application code
+* `tests/`                      -> unit tests (run via npm test)
 
-- config/                     -> centralized configuration modules
-- events/                     -> Discord event listeners
-- handlers/                   -> interaction routing and component handlers
-  - commandLoader.js          -> loads slash commands at startup
-  - events.js                 -> Discord event listener registration
-  - interactions.js           -> button/select/modal router
-  - ticketButtons.js, reactionRoles.js, etc.
+## src/
 
-- interactions/               -> button, modal, and select menu handlers
-- services/                   -> business logic + data operations
-- utils/                      -> shared helpers
-  - database.js               -> facade re-exporting database modules
-  - database/wrapper.js       -> DatabaseWrapper, get/set helpers
-  - database/keys.js          -> Redis-style key builders
-  - database/tickets.js       -> ticket persistence + guild ticket stats
-  - panelStatus.js            -> shared panel message detection
-  - errorHandler.js, logger.js, embeds.js, etc.
+* `app.js`                      -> creates client, initializes systems, starts web server
 
-Database
-- PostgreSQL (primary) with in-memory fallback for development
-- Graceful degradation when PostgreSQL is unavailable
+* `commands/`                   -> slash command categories by feature
 
-Notes
-- Modular by feature area: commands -> handlers -> services -> utils
-- bot.js is the single source of truth for embed theming/colors and core bot config
+  * `Core/`                     -> help, ping, stats, uptime, invite
+  * `Community/`                -> application management + dashboards
+  * `Logging/`                  -> audit logging + event management
+
+    * `modules/logging_dashboard.js`
+    * `modules/logging_setchannel.js`
+  * `Ticket/`                   -> support ticket system + dashboard
+  * `ServerStats/`              -> server stats channel system
+  * `Economy/`                  -> economy system
+  * `Moderation/`               -> moderation/admin commands
+  * `Verification/`             -> member verification flow
+  * `JoinToCreate/`             -> dynamic voice channel creation
+  * `Reaction_roles/`           -> automatic role assignment
+  * `GameServers/`               -> game server management and monitoring
+
+    * `gameservers.js`           -> `/gameserver add` and `/gameserver edit`
+  * `Birthday/`, `Fun/`, `Giveaway/`, `Leveling/`, `Search/`, `Tools/`, `Utility/`, `Welcome/`
+
+* `config/`                     -> centralized configuration modules
+
+* `events/`                     -> Discord event listeners
+
+* `handlers/`                   -> interaction routing and component handlers
+
+  * `commandLoader.js`          -> loads slash commands at startup
+  * `events.js`                 -> Discord event listener registration
+  * `interactions.js`           -> button/select/modal router
+  * `ticketButtons.js`, `reactionRoles.js`, etc.
+
+* `interactions/`               -> button, modal, and select menu handlers
+
+  * `buttons/gameServer/`       -> Game Server buttons
+
+    * `refresh_server.js`       -> refresh server information
+    * `toggle_players.js`       -> show/hide player and bot lists
+    * `delete_server.js`        -> open Game Server deletion confirmation
+  * `modals/gameServer/`        -> Game Server modal handlers
+
+    * `gameserver_add.js`       -> add a new Game Server
+    * `delete_server_confirm.js`-> confirm and execute Game Server deletion
+
+* `services/`                   -> business logic + data operations
+
+  * `gameServers/`              -> Game Server monitoring and database logic
+
+    * `serverConfig.js`         -> Game Server Monitor name, version, interval and embed colors
+    * `gameQueryService.js`     -> queries game servers with Gamedig
+    * `serverEmbed.js`           -> builds Game Server information and player/bot list embeds
+    * `serverMonitorService.js` -> periodic monitoring, message updates and online/offline alerts
+    * `gameServerDatabase.js`   -> Game Server database operations
+  * `discord/`                  -> Discord-specific services
+
+    * `discordInviteService.js` -> creates Discord channel invites for Game Servers
+
+* `utils/`                      -> shared helpers
+
+  * `database.js`               -> facade re-exporting database modules
+  * `database/wrapper.js`       -> DatabaseWrapper, get/set helpers
+  * `database/keys.js`          -> Redis-style key builders
+  * `database/tickets.js`       -> ticket persistence + guild ticket stats
+  * `panelStatus.js`            -> shared panel message detection
+  * `errorHandler.js`, `logger.js`, `embeds.js`, etc.
+
+## Database
+
+* PostgreSQL (primary) with in-memory fallback for development
+* Graceful degradation when PostgreSQL is unavailable
+* Game Servers are stored in PostgreSQL with persistent server/channel/message configuration
+
+## Game Server Monitor
+
+* `/gameserver add`          -> add a new Game Server through a modal
+* `/gameserver edit`         -> move/update the Game Server monitor and alert channel
+* Refresh button             -> refresh live server information
+* Show/Hide Players button   -> show or hide Player List and Bot List
+* Delete button              -> confirm and delete a Game Server
+* Player List                -> displayed as a normal list
+* Bot List                   -> displayed as a normal list
+* Online / Offline status    -> updated through the Game Server Monitor
+* Discord Invite             -> generated for the configured Game Server channel
+* Multi-Embed layout         -> server information and player/bot lists are separated into two embeds
+* Game Server Monitor version -> `3.2.0`
+
+## Notes
+
+* Modular by feature area: commands -> handlers -> interactions -> services -> utils
+* Game Server Monitor is implemented as an independent feature module
+* Game Server Monitor configuration is separate from the main `package.json` bot version
+* `bot.js` is the single source of truth for embed theming/colors and core bot config
+* PostgreSQL remains the persistent database for Game Server configuration and monitoring data

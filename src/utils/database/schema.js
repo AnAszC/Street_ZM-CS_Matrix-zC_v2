@@ -31,6 +31,7 @@ export const tableStatements = [
         channel_id VARCHAR(20),
         message_id VARCHAR(20),
         alert_channel_id VARCHAR(20),
+        discord_invite TEXT,
 
         monitor_enabled BOOLEAN NOT NULL DEFAULT TRUE,
         alert_enabled BOOLEAN NOT NULL DEFAULT TRUE,
@@ -56,6 +57,9 @@ export const tableStatements = [
     
     `ALTER TABLE ${t.game_servers}
     ADD COLUMN IF NOT EXISTS alert_channel_id VARCHAR(20)`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS discord_invite TEXT`,
     
     `CREATE TABLE IF NOT EXISTS ${t.users} (
         id VARCHAR(20) PRIMARY KEY,
