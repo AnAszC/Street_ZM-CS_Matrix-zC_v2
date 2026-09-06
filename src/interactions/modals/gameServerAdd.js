@@ -1,3 +1,6 @@
+
+import crypto from 'crypto';
+
 import {
     ActionRowBuilder,
     ButtonBuilder,
@@ -14,6 +17,40 @@ import {
 import { fetchServerInfo } from '../../services/gameServers/gameQueryService.js';
 import { buildServerEmbed } from '../../services/gameServers/serverEmbed.js';
 import { createDiscordChannelInvite } from '../../services/discord/discordInviteService.js';
+
+/**
+ * Generate a short and readable Game Server verification code.
+ *
+ * Example:
+ * GSM-7K4P9X
+ */
+function generateVerificationCode() {
+    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+    let randomPart = '';
+
+    for (let i = 0; i < 6; i++) {
+        const randomIndex = crypto.randomInt(
+            0,
+            characters.length
+        );
+
+        randomPart += characters[randomIndex];
+    }
+
+    return `GSM-${randomPart}`;
+}
+
+/**
+ * Convert the stored game type into the display format used
+ * by the Ownership Verification system.
+ *
+ * Example:
+ * cs16 -> CS16
+ */
+function getVerificationGameType(gameType) {
+    return String(gameType || 'unknown').toUpperCase();
+}
 
 export default {
     name: 'gameserver_add',
@@ -105,7 +142,7 @@ export default {
                 return;
             }
 
-            // GameDig supports cs16 for Counter-Strike 1.6
+            // GameDig currently supports cs16 in this feature
             const supportedGameTypes = [
                 'cs16'
             ];
@@ -144,6 +181,17 @@ export default {
             }
 
             // =========================
+            // Generate Ownership Code
+            // =========================
+
+            const verificationCode = generateVerificationCode();
+            const verificationGameType =
+                getVerificationGameType(gameType);
+
+            const verificationValue =
+                `${verificationGameType} | ${verificationCode}`;
+
+            // =========================
             // Create Server in PostgreSQL
             // =========================
 
@@ -154,6 +202,11 @@ export default {
                 port,
                 gameType,
                 emoji,
+                verificationCode,
+                ownershipVerified: false,
+                ownerUserId: null,
+                ownerUsername: null,
+                verifiedAt: null,
                 monitorEnabled: true,
                 alertEnabled: true
             });
@@ -201,6 +254,12 @@ export default {
                 )
                 .setStyle(ButtonStyle.Primary);
 
+            const claimButton = new ButtonBuilder()
+                .setCustomId(`claim_server:${server.id}`)
+                .setLabel('Claim This Server')
+                .setEmoji('🔐')
+                .setStyle(ButtonStyle.Success);
+
             const deleteButton = new ButtonBuilder()
                 .setCustomId(`delete_server:${server.id}`)
                 .setLabel('Delete')
@@ -211,6 +270,7 @@ export default {
                 .addComponents(
                     refreshButton,
                     playersButton,
+                    claimButton,
                     deleteButton
                 );
 
@@ -288,6 +348,10 @@ export default {
                 `to guild ${interaction.guildId}`
             );
 
+            console.log(
+                `[GameServer Ownership] Verification code generated for server #${server.id}: ${verificationValue}`
+            );
+
         } catch (error) {
             console.error(
                 '[GameServer Add] Error:',
@@ -319,3 +383,4 @@ export default {
         }
     }
 };
+

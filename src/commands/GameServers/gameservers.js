@@ -244,6 +244,7 @@ export default {
                     ? embedResult
                     : [embedResult];
 
+
                 // =========================
                 // Game Server Buttons
                 // =========================
@@ -257,16 +258,33 @@ export default {
                 const playersButton = new ButtonBuilder()
                     .setCustomId(`toggle_players:${server.id}`)
                     .setLabel(
-                        server.show_players
-                            ? 'Hide Players'
-                            : 'Show Players'
+                        server.show_players === false
+                            ? 'Show Players'
+                            : 'Hide Players'
                     )
                     .setEmoji(
-                        server.show_players
-                            ? '🙈'
-                            : '👥'
+                        server.show_players === false
+                            ? '👥'
+                            : '🙈'
                     )
                     .setStyle(ButtonStyle.Primary);
+
+                const claimButton = new ButtonBuilder()
+                    .setCustomId(`claim_server:${server.id}`)
+                    .setLabel(
+                        server.ownership_verified
+                            ? 'Verified'
+                            : 'Claim This Server'
+                    )
+                    .setEmoji(
+                        server.ownership_verified
+                            ? '✅'
+                            : '🔐'
+                    )
+                    .setStyle(ButtonStyle.Success)
+                    .setDisabled(
+                        server.ownership_verified === true
+                    );
 
                 const deleteButton = new ButtonBuilder()
                     .setCustomId(`delete_server:${server.id}`)
@@ -278,6 +296,7 @@ export default {
                     .addComponents(
                         refreshButton,
                         playersButton,
+                        claimButton,
                         deleteButton
                     );
 

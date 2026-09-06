@@ -26,6 +26,14 @@ export async function getGameServerById(serverId) {
             message_id,
             alert_channel_id,
             discord_invite,
+            country,
+            country_code,
+            country_flag,
+            verification_code,
+            ownership_verified,
+            owner_user_id,
+            owner_username,
+            verified_at,
             monitor_enabled,
             alert_enabled,
             show_players,
@@ -69,6 +77,11 @@ export async function getGameServersByGuild(guildId) {
             message_id,
             alert_channel_id,
             discord_invite,
+            verification_code,
+            ownership_verified,
+            owner_user_id,
+            owner_username,
+            verified_at,
             monitor_enabled,
             alert_enabled,
             show_players,
@@ -91,6 +104,47 @@ export async function getGameServersByGuild(guildId) {
 }
 
 /**
+ * Save GeoIP location for a Game Server.
+ */
+export async function updateGameServerLocation(
+    serverId,
+    location = {}
+) {
+    if (!pgDb.isAvailable()) {
+        throw new Error(
+            'PostgreSQL database is not available.'
+        );
+    }
+
+    const {
+        country = null,
+        countryCode = null,
+        countryFlag = null
+    } = location;
+
+    const result = await pgDb.pool.query(
+        `
+        UPDATE ${table}
+        SET
+            country = $1,
+            country_code = $2,
+            country_flag = $3,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $4
+        RETURNING *
+        `,
+        [
+            country,
+            countryCode,
+            countryFlag,
+            Number(serverId)
+        ]
+    );
+
+    return result.rows[0] ?? null;
+}
+
+/**
  * Create a new game server.
  */
 export async function createGameServer({
@@ -103,6 +157,11 @@ export async function createGameServer({
     channelId = null,
     messageId = null,
     discordInvite = null,
+    verificationCode = null,
+    ownershipVerified = false,
+    ownerUserId = null,
+    ownerUsername = null,
+    verifiedAt = null,
     monitorEnabled = true,
     alertEnabled = true
 }) {
@@ -122,10 +181,18 @@ export async function createGameServer({
             channel_id,
             message_id,
             discord_invite,
+            verification_code,
+            ownership_verified,
+            owner_user_id,
+            owner_username,
+            verified_at,
             monitor_enabled,
             alert_enabled
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8,
+            $9, $10, $11, $12, $13, $14, $15, $16
+        )
         RETURNING *
         `,
         [
@@ -138,6 +205,11 @@ export async function createGameServer({
             channelId,
             messageId,
             discordInvite,
+            verificationCode,
+            ownershipVerified,
+            ownerUserId,
+            ownerUsername,
+            verifiedAt,
             monitorEnabled,
             alertEnabled
         ]
@@ -172,6 +244,13 @@ export async function updateGameServer(serverId, updates = {}) {
         messageId: 'message_id',
         alertChannelId: 'alert_channel_id',
         discordInvite: 'discord_invite',
+
+        verificationCode: 'verification_code',
+        ownershipVerified: 'ownership_verified',
+        ownerUserId: 'owner_user_id',
+        ownerUsername: 'owner_username',
+        verifiedAt: 'verified_at',
+
         monitorEnabled: 'monitor_enabled',
         alertEnabled: 'alert_enabled',
         showPlayers: 'show_players'
@@ -365,4 +444,209 @@ export async function setGameServerMessage(
         channelId,
         messageId
     });
+}
+
+/**
+ * Find a Game Server by ownership verification code.
+ */
+export async function findGameServerByVerificationCode(
+    verificationCode
+) {
+    if (!pgDb.isAvailable()) {
+        throw new Error('PostgreSQL database is not available.');
+    }
+
+    const result = await pgDb.pool.query(
+        `
+        SELECT *
+        FROM ${table}
+        WHERE verification_code = $1
+        LIMIT 1
+        `,
+        [verificationCode]
+    );
+
+    return result.rows[0] ?? null;
+}
+
+/**
+ * Get ownership claim state for a user and Game Server.
+ */
+export async function getOwnershipClaimState(
+    serverId,
+    userId
+) {
+    if (!pgDb.isAvailable()) {
+        throw new Error('PostgreSQL database is not available.');
+    }
+
+    const result = await pgDb.pool.query(
+        `
+        SELECT
+            server_id,
+            user_id,
+            failed_attempts,
+            last_claim_at,
+            last_attempt_at,
+            locked_until
+        FROM game_server_ownership_claims
+        WHERE server_id = $1
+          AND user_id = $2
+        LIMIT 1
+        `,
+        [
+            Number(serverId),
+            userId
+        ]
+    );
+
+    return result.rows[0] ?? null;
+}
+
+/**
+ * Record a Claim request.
+ */
+export async function recordOwnershipClaimRequest(
+    serverId,
+    userId
+) {
+    if (!pgDb.isAvailable()) {
+        throw new Error('PostgreSQL database is not available.');
+    }
+
+    const result = await pgDb.pool.query(
+        `
+        INSERT INTO game_server_ownership_claims (
+            server_id,
+            user_id,
+            last_claim_at
+        )
+        VALUES ($1, $2, CURRENT_TIMESTAMP)
+        ON CONFLICT (server_id, user_id)
+        DO UPDATE SET
+            last_claim_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        RETURNING *
+        `,
+        [
+            Number(serverId),
+            userId
+        ]
+    );
+
+    return result.rows[0] ?? null;
+}
+
+/**
+ * Record a failed ownership verification attempt.
+ *
+ * Protection rules:
+ * - Maximum 5 failed attempts.
+ * - After the 5th failed attempt, lock the user/server pair.
+ * - Once the lock expires, the failed-attempt counter resets automatically.
+ */
+export async function recordFailedOwnershipAttempt(
+    serverId,
+    userId,
+    maxAttempts = 5,
+    lockMinutes = 5
+) {
+    if (!pgDb.isAvailable()) {
+        throw new Error('PostgreSQL database is not available.');
+    }
+
+    const result = await pgDb.pool.query(
+        `
+        INSERT INTO game_server_ownership_claims (
+            server_id,
+            user_id,
+            failed_attempts,
+            last_attempt_at,
+            locked_until
+        )
+        VALUES (
+            $1,
+            $2,
+            1,
+            CURRENT_TIMESTAMP,
+            NULL
+        )
+        ON CONFLICT (server_id, user_id)
+        DO UPDATE SET
+            failed_attempts =
+                CASE
+                    WHEN
+                        game_server_ownership_claims.locked_until IS NOT NULL
+                        AND game_server_ownership_claims.locked_until <= CURRENT_TIMESTAMP
+                    THEN
+                        1
+                    ELSE
+                        game_server_ownership_claims.failed_attempts + 1
+                END,
+
+            last_attempt_at =
+                CURRENT_TIMESTAMP,
+
+            locked_until =
+                CASE
+                    WHEN
+                        game_server_ownership_claims.locked_until IS NOT NULL
+                        AND game_server_ownership_claims.locked_until <= CURRENT_TIMESTAMP
+                    THEN
+                        NULL
+
+                    WHEN
+                        game_server_ownership_claims.failed_attempts + 1 >= $3
+                    THEN
+                        CURRENT_TIMESTAMP +
+                        ($4 || ' minutes')::interval
+
+                    ELSE
+                        game_server_ownership_claims.locked_until
+                END,
+
+            updated_at = CURRENT_TIMESTAMP
+
+        RETURNING *
+        `,
+        [
+            Number(serverId),
+            userId,
+            Number(maxAttempts),
+            Number(lockMinutes)
+        ]
+    );
+
+    return result.rows[0] ?? null;
+}
+
+/**
+ * Reset ownership verification attempts after success.
+ */
+export async function resetOwnershipClaimState(
+    serverId,
+    userId
+) {
+    if (!pgDb.isAvailable()) {
+        throw new Error('PostgreSQL database is not available.');
+    }
+
+    await pgDb.pool.query(
+        `
+        UPDATE game_server_ownership_claims
+        SET
+            failed_attempts = 0,
+            last_attempt_at = NULL,
+            locked_until = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE server_id = $1
+          AND user_id = $2
+        `,
+        [
+            Number(serverId),
+            userId
+        ]
+    );
+
+    return true;
 }

@@ -53,9 +53,14 @@ export async function fetchServerInfo(serverConfig) {
                 `${serverConfig.host || serverConfig.ip}:${Number(serverConfig.port)}`,
 
             // Will be populated later by GeoIP
-            country: null,
-            countryCode: null,
-            countryFlag: null,
+            country:
+                serverConfig.country || null,
+
+            countryCode:
+                serverConfig.country_code || null,
+
+            countryFlag:
+                serverConfig.country_flag || null,
 
             // Keep the raw data in case additional information is needed later
             raw: info.raw || null
@@ -92,9 +97,14 @@ export async function fetchServerInfo(serverConfig) {
                     ? `${serverConfig.host || serverConfig.ip}:${Number(serverConfig.port)}`
                     : null,
 
-            country: null,
-            countryCode: null,
-            countryFlag: null,
+            country:
+                serverConfig.country || null,
+
+            countryCode:
+                serverConfig.country_code || null,
+
+            countryFlag:
+                serverConfig.country_flag || null,
 
             raw: null
         };

@@ -1,12 +1,16 @@
+
 import {
     getMonitoredGameServers,
     updateGameServerStatus,
-    setGameServerMessage
+    setGameServerMessage,
+    updateGameServerLocation
 } from './gameServerDatabase.js';
 
 import { fetchServerInfo } from './gameQueryService.js';
+import { getIpLocation } from './geoIpService.js';
 import { buildServerEmbed } from './serverEmbed.js';
 import { gameServerConfig } from './serverConfig.js';
+
 
 import { pgDb } from '../../utils/postgresDatabase.js';
 import { logger } from '../../utils/logger.js';
@@ -170,10 +174,43 @@ class ServerMonitorService {
         }
 
         /*
+        * Detect and cache server country only once.
+        */
+        let serverForEmbed = updatedServer;
+
+        if (!updatedServer.country_code) {
+            const location =
+                await getIpLocation(
+                    updatedServer.host
+                );
+
+            if (location) {
+                const locationUpdated =
+                    await updateGameServerLocation(
+                        updatedServer.id,
+                        location
+                    );
+
+                if (locationUpdated) {
+                    serverForEmbed =
+                        locationUpdated;
+                }
+            }
+        }
+
+         /* if (!updatedServer) {
+            logger.warn(
+                `[GameServer Monitor] Server #${server.id} disappeared from database.`
+            );
+
+            return;
+        }*/
+
+        /*
          * Build the new Embeds
          */
         const embedResult = buildServerEmbed(
-            updatedServer,
+            serverForEmbed,
             serverData
         );
 
@@ -283,6 +320,23 @@ class ServerMonitorService {
                     )
                     .setStyle(ButtonStyle.Primary);
 
+                const claimButton = new ButtonBuilder()
+                .setCustomId(`claim_server:${server.id}`)
+                .setLabel(
+                    server.ownership_verified
+                        ? 'Verified'
+                        : 'Claim This Server'
+                )
+                .setEmoji(
+                    server.ownership_verified
+                        ? '✅'
+                        : '🔐'
+                )
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(
+                    server.ownership_verified === true
+                );
+
                 const deleteButton = new ButtonBuilder()
                     .setCustomId(`delete_server:${server.id}`)
                     .setLabel('Delete')
@@ -293,6 +347,7 @@ class ServerMonitorService {
                     .addComponents(
                         refreshButton,
                         playersButton,
+                        claimButton,
                         deleteButton
                     );
 
@@ -365,6 +420,23 @@ class ServerMonitorService {
                 )
                 .setStyle(ButtonStyle.Primary);
 
+            const claimButton = new ButtonBuilder()
+            .setCustomId(`claim_server:${server.id}`)
+            .setLabel(
+                server.ownership_verified
+                    ? 'Verified'
+                    : 'Claim This Server'
+            )
+            .setEmoji(
+                server.ownership_verified
+                    ? '✅'
+                    : '🔐'
+            )
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(
+                server.ownership_verified === true
+            );
+
             const deleteButton = new ButtonBuilder()
                 .setCustomId(`delete_server:${server.id}`)
                 .setLabel('Delete')
@@ -375,6 +447,7 @@ class ServerMonitorService {
                 .addComponents(
                     refreshButton,
                     playersButton,
+                    claimButton,
                     deleteButton
                 );
 
@@ -546,3 +619,4 @@ class ServerMonitorService {
 }
 
 export default ServerMonitorService;
+

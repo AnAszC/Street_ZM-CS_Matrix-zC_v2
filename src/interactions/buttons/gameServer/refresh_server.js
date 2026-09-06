@@ -55,7 +55,7 @@ export default {
             await interaction.editReply({
                 content: null,
                 embeds
-            });;
+            });
 
         } catch (error) {
             console.error(

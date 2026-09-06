@@ -33,6 +33,16 @@ export const tableStatements = [
         alert_channel_id VARCHAR(20),
         discord_invite TEXT,
 
+        country TEXT,
+        country_code VARCHAR(2),
+        country_flag VARCHAR(16),
+
+        verification_code VARCHAR(32),
+        ownership_verified BOOLEAN NOT NULL DEFAULT FALSE,
+        owner_user_id VARCHAR(20),
+        owner_username VARCHAR(100),
+        verified_at TIMESTAMP,
+
         monitor_enabled BOOLEAN NOT NULL DEFAULT TRUE,
         alert_enabled BOOLEAN NOT NULL DEFAULT TRUE,
         show_players BOOLEAN NOT NULL DEFAULT TRUE,
@@ -51,7 +61,11 @@ export const tableStatements = [
 
         UNIQUE (guild_id, host, port)
     )`,
-
+    
+    /*
+    // migration
+    */
+   
     `ALTER TABLE ${t.game_servers}
     ADD COLUMN IF NOT EXISTS show_players BOOLEAN NOT NULL DEFAULT TRUE`,
     
@@ -60,6 +74,61 @@ export const tableStatements = [
 
     `ALTER TABLE ${t.game_servers}
     ADD COLUMN IF NOT EXISTS discord_invite TEXT`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS verification_code VARCHAR(32)`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS ownership_verified BOOLEAN NOT NULL DEFAULT FALSE`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS owner_user_id VARCHAR(20)`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS owner_username VARCHAR(100)`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS country TEXT`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS country_code VARCHAR(2)`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS country TEXT`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS country_code VARCHAR(2)`,
+
+    `ALTER TABLE ${t.game_servers}
+    ADD COLUMN IF NOT EXISTS country_flag VARCHAR(16)`,
+
+
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_game_servers_verification_code_unique
+        ON ${t.game_servers}(verification_code)
+        WHERE verification_code IS NOT NULL`,
+
+    `CREATE TABLE IF NOT EXISTS game_server_ownership_claims (
+        server_id INTEGER NOT NULL,
+        user_id VARCHAR(20) NOT NULL,
+
+        failed_attempts INTEGER NOT NULL DEFAULT 0,
+
+        last_claim_at TIMESTAMP,
+        last_attempt_at TIMESTAMP,
+        locked_until TIMESTAMP,
+
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+        PRIMARY KEY (server_id, user_id),
+
+        FOREIGN KEY (server_id)
+            REFERENCES ${t.game_servers}(id)
+            ON DELETE CASCADE
+    )`,
     
     `CREATE TABLE IF NOT EXISTS ${t.users} (
         id VARCHAR(20) PRIMARY KEY,
@@ -239,6 +308,8 @@ export const indexStatements = [
     `CREATE INDEX IF NOT EXISTS idx_verification_audit_created_at ON ${t.verification_audit}(created_at)`,
     `CREATE INDEX IF NOT EXISTS idx_temp_data_expires_at ON ${t.temp_data}(expires_at)`,
     `CREATE INDEX IF NOT EXISTS idx_cache_data_expires_at ON ${t.cache_data}(expires_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_ownership_claims_user ON game_server_ownership_claims(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_ownership_claims_locked ON game_server_ownership_claims(locked_until)`,
 ];
 
 export const UPDATE_TIMESTAMP_FUNCTION = `
@@ -270,4 +341,5 @@ export const triggerDefinitions = [
     { name: 'update_giveaways_updated_at', table: t.giveaways },
     { name: 'update_tickets_updated_at', table: t.tickets },
     { name: 'update_afk_status_updated_at', table: t.afk_status },
+    { name: 'update_game_server_ownership_claims_updated_at', table: 'game_server_ownership_claims' },
 ];

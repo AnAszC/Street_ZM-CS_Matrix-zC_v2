@@ -19,13 +19,51 @@ export function buildServerEmbed(server, serverData) {
         server.game_type ||
         'Unknown Game';
 
+    const countryFlag =
+        serverData?.countryFlag ||
+        server.country_flag ||
+        null;
+
+    const countryCode =
+        serverData?.countryCode ||
+        server.country_code ||
+        null;
+
     const country =
-        serverData?.countryFlag && serverData?.countryCode
-            ? `${serverData.countryFlag} ${serverData.countryCode}`
+        countryFlag && countryCode
+            ? `${countryFlag} ${countryCode}`
             : '🌐 Unknown';
 
     const connectAddress =
         serverData?.connect || address;
+
+    /*
+     * Display server name.
+     *
+     * Prefer the live hostname returned by GameDig.
+     * Fall back to the database name if the live name
+     * is unavailable.
+     */
+    const displayServerName =
+        String(serverData?.name || '').trim() ||
+        server.name ||
+        'Unknown Game Server';
+
+    /*
+     * Server Manager
+     */
+    const serverManager =
+    server.owner_user_id
+        ? `<@${server.owner_user_id}>`
+        : 'Unknown';
+
+    /*
+     * Ownership Status
+     */
+    const ownershipStatus =
+        server.ownership_verified === true
+            ? `<:locked:1546233004072902887> Verified`
+            : '<:unlocked:1546233009215242301> Not Verified';
 
     /*
      * Main Server Information Embed
@@ -37,10 +75,10 @@ export function buildServerEmbed(server, serverData) {
                 : gameServerConfig.embedColorOffline
         )
         .setTitle(
-            `${server.emoji || '<:guarded:1546099145004032051>'} ${server.name}`
+            `${server.emoji || '<:guarded:1546099145004032051>'} ${displayServerName}`
         )
         .setDescription(
-            `<:guarded:1546099145004032051> **Server Manager:** ${server.manager || 'Unknown'}`
+            `<:guarded:1546099145004032051> **Server Manager:** ${serverManager}`
         )
         .addFields(
             {
@@ -53,6 +91,11 @@ export function buildServerEmbed(server, serverData) {
                 value: isOnline
                     ? '<a:onlines:1546099245440831598> Online'
                     : '<a:offlines:1546099244086337536> Offline',
+                inline: true
+            },
+            {
+                name: '<a:oldkey:1546233008397357248> Ownership:',
+                value: ownershipStatus,
                 inline: true
             },
             {

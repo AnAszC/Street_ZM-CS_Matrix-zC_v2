@@ -1,17 +1,17 @@
 export const gameServerConfig = {
-    // معلومات النظام
+    // Game Server Monitor information
     name: 'CSMatrix-zC | Game Server Monitor',
-    version: '3.2.0',
+    version: '3.2.4',
 
-    // فحص الخوادم كل 5 دقائق
+    // Check servers every 5 minutes
     updateInterval: 300000,
 
-    // الحد الأقصى لعرض أسماء اللاعبين
+    // Maximum number of player names to display
     maxPlayersDisplay: 20,
 
-    // لون Embed عندما يكون الخادم Online
+    // Embed color when the server is online
     embedColorOnline: 0x00FF00,
 
-    // لون Embed عندما يكون الخادم Offline
+    // Embed color when the server is offline
     embedColorOffline: 0xFF0000
 };

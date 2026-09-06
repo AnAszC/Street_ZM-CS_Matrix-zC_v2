@@ -1,3 +1,10 @@
+
+import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} from 'discord.js';
+
 import {
     getGameServerById,
     updateGameServer
@@ -64,7 +71,7 @@ export default {
             const serverData = await fetchServerInfo(updatedServer);
 
             /*
-             * buildServerEmbed now returns:
+             * buildServerEmbed returns:
              *
              * [Main Embed, Lists Embed]
              *
@@ -74,73 +81,76 @@ export default {
              *
              * when the lists are hidden.
              */
-            const embeds = buildServerEmbed(
+            const embedResult = buildServerEmbed(
                 updatedServer,
                 serverData
             );
 
+            const embeds = Array.isArray(embedResult)
+                ? embedResult
+                : [embedResult];
+
             /*
-             * Find the existing buttons
+             * Rebuild the complete Game Server button row.
              */
-            const refreshButton = interaction.message.components[0]
-                ?.components.find(
-                    button =>
-                        button.customId === `refresh_server:${server.id}`
+            const refreshButton = new ButtonBuilder()
+                .setCustomId(`refresh_server:${updatedServer.id}`)
+                .setLabel('Refresh')
+                .setEmoji('🔄')
+                .setStyle(ButtonStyle.Secondary);
+
+            const playersButton = new ButtonBuilder()
+                .setCustomId(`toggle_players:${updatedServer.id}`)
+                .setLabel(
+                    newShowPlayers
+                        ? 'Hide Players'
+                        : 'Show Players'
+                )
+                .setEmoji(
+                    newShowPlayers
+                        ? '🙈'
+                        : '👥'
+                )
+                .setStyle(ButtonStyle.Primary);
+
+            const claimButton = new ButtonBuilder()
+                .setCustomId(`claim_server:${updatedServer.id}`)
+                .setLabel(
+                    updatedServer.ownership_verified
+                        ? 'Verified'
+                        : 'Claim This Server'
+                )
+                .setEmoji(
+                    updatedServer.ownership_verified
+                        ? '✅'
+                        : '🔐'
+                )
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(
+                    updatedServer.ownership_verified === true
                 );
 
-            const deleteButton = interaction.message.components[0]
-                ?.components.find(
-                    button =>
-                        button.customId === `delete_server:${server.id}`
+            const deleteButton = new ButtonBuilder()
+                .setCustomId(`delete_server:${updatedServer.id}`)
+                .setLabel('Delete')
+                .setEmoji('🗑️')
+                .setStyle(ButtonStyle.Danger);
+
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    refreshButton,
+                    playersButton,
+                    claimButton,
+                    deleteButton
                 );
 
             /*
-             * Rebuild the button row while preserving:
-             * Refresh
-             * Show / Hide Players
-             * Delete
-             */
-            if (refreshButton && deleteButton) {
-                const {
-                    ActionRowBuilder,
-                    ButtonBuilder,
-                    ButtonStyle
-                } = await import('discord.js');
-
-                const playersButton = new ButtonBuilder()
-                    .setCustomId(`toggle_players:${server.id}`)
-                    .setLabel(
-                        newShowPlayers
-                            ? 'Hide Players'
-                            : 'Show Players'
-                    )
-                    .setEmoji(
-                        newShowPlayers
-                            ? '🙈'
-                            : '👥'
-                    )
-                    .setStyle(ButtonStyle.Primary);
-
-                const row = new ActionRowBuilder()
-                    .addComponents(
-                        ButtonBuilder.from(refreshButton),
-                        playersButton,
-                        ButtonBuilder.from(deleteButton)
-                    );
-
-                await interaction.editReply({
-                    embeds,
-                    components: [row]
-                });
-
-                return;
-            }
-
-            /*
-             * If the existing buttons could not be found
+             * Update the Embeds and complete button row.
              */
             await interaction.editReply({
-                embeds
+                content: null,
+                embeds,
+                components: [row]
             });
 
         } catch (error) {
@@ -158,3 +168,4 @@ export default {
         }
     }
 };
+
