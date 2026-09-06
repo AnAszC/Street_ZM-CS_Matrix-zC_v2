@@ -24,6 +24,7 @@ export async function getGameServerById(serverId) {
             emoji,
             channel_id,
             message_id,
+            alert_channel_id,
             monitor_enabled,
             alert_enabled,
             show_players,
@@ -65,6 +66,7 @@ export async function getGameServersByGuild(guildId) {
             emoji,
             channel_id,
             message_id,
+            alert_channel_id,
             monitor_enabled,
             alert_enabled,
             show_players,
@@ -163,6 +165,7 @@ export async function updateGameServer(serverId, updates = {}) {
         emoji: 'emoji',
         channelId: 'channel_id',
         messageId: 'message_id',
+        alertChannelId: 'alert_channel_id',
         monitorEnabled: 'monitor_enabled',
         alertEnabled: 'alert_enabled',
         showPlayers: 'show_players'

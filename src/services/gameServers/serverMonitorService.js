@@ -301,10 +301,6 @@ class ServerMonitorService {
                         deleteButton
                     );
 
-
-
-
-
                 /*
                 * تحديث الـ Embed وإعادة إرسال الزرين.
                 *
@@ -392,8 +388,6 @@ class ServerMonitorService {
                     deleteButton
                 );
 
-
-
             /*
              * إرسال الرسالة الجديدة.
              */
@@ -478,16 +472,35 @@ class ServerMonitorService {
     }
 
     async sendStatusAlert(server, status) {
-        if (!server.channel_id) {
+        if (!server.alert_channel_id) {
+            logger.warn(
+                `[GameServer Monitor] Server #${server.id} ` +
+                `does not have an alert channel configured.`
+            );
+
             return;
         }
 
         try {
             const channel = await this.client.channels.fetch(
-                server.channel_id
+                server.alert_channel_id
             );
 
             if (!channel) {
+                logger.warn(
+                    `[GameServer Monitor] Alert channel ${server.alert_channel_id} ` +
+                    `not found for server #${server.id}.`
+                );
+
+                return;
+            }
+
+            if (!channel.isTextBased()) {
+                logger.warn(
+                    `[GameServer Monitor] Alert channel ${server.alert_channel_id} ` +
+                    `is not text-based for server #${server.id}.`
+                );
+
                 return;
             }
 
@@ -499,7 +512,8 @@ class ServerMonitorService {
                 });
 
                 logger.info(
-                    `[GameServer Monitor] ONLINE alert sent for #${server.id}.`
+                    `[GameServer Monitor] ONLINE alert sent for #${server.id} ` +
+                    `to alert channel ${server.alert_channel_id}.`
                 );
 
                 return;
@@ -513,7 +527,8 @@ class ServerMonitorService {
                 });
 
                 logger.info(
-                    `[GameServer Monitor] OFFLINE alert sent for #${server.id}.`
+                    `[GameServer Monitor] OFFLINE alert sent for #${server.id} ` +
+                    `to alert channel ${server.alert_channel_id}.`
                 );
             }
 
