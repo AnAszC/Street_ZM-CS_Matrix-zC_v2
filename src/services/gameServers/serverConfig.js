@@ -1,7 +1,7 @@
 export const gameServerConfig = {
     // Game Server Monitor information
     name: 'CSMatrix-zC | Game Server Monitor',
-    version: '3.2.4',
+    version: '3.2.5',
 
     // Check servers every 5 minutes
     updateInterval: 300000,
