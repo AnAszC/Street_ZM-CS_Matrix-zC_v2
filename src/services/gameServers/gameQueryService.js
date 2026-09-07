@@ -1,4 +1,3 @@
-
 import gamedig from 'gamedig';
 
 const { query } = gamedig;
@@ -6,17 +5,37 @@ const { query } = gamedig;
 export async function fetchServerInfo(serverConfig) {
     try {
         const info = await query({
-            type: serverConfig.type || serverConfig.game_type || 'cs16',
-            host: serverConfig.host || serverConfig.ip,
+            type:
+                serverConfig.type ||
+                serverConfig.game_type ||
+                'cs16',
+
+            host:
+                serverConfig.host ||
+                serverConfig.ip,
+
             port: Number(serverConfig.port)
         });
 
-        const playerList = Array.isArray(info.players)
+        const playerDetails = Array.isArray(info.players)
             ? info.players
-                .map(player => player.name)
-                .filter(Boolean)
+                .map(player => ({
+                    name: player?.name || '',
+
+                    score:
+                        Number.isFinite(
+                            Number(player?.score)
+                        )
+                            ? Number(player.score)
+                            : null
+                }))
+                .filter(player => player.name)
                 .slice(0, 20)
             : [];
+
+        const playerList = playerDetails.map(
+            player => player.name
+        );
 
         const botList = Array.isArray(info.bots)
             ? info.bots
@@ -28,25 +47,41 @@ export async function fetchServerInfo(serverConfig) {
         return {
             online: true,
 
-            name: info.name || serverConfig.name,
+            name:
+                info.name ||
+                serverConfig.name,
 
-            map: info.map || 'Unknown',
+            map:
+                info.map ||
+                'Unknown',
 
-            players: Array.isArray(info.players)
-                ? info.players.length
-                : 0,
+            players:
+                Array.isArray(info.players)
+                    ? info.players.length
+                    : 0,
 
-            maxPlayers: info.maxplayers || 0,
+            maxPlayers:
+                info.maxplayers ||
+                0,
 
             playerList,
+
+            /*
+             * Full player information used by
+             * Historical Statistics.
+             */
+            playerDetails,
 
             bots: botList,
 
             botList,
 
-            botCount: botList.length,
+            botCount:
+                botList.length,
 
-            ping: info.ping || null,
+            ping:
+                info.ping ||
+                null,
 
             connect:
                 info.connect ||
@@ -54,17 +89,23 @@ export async function fetchServerInfo(serverConfig) {
 
             // Will be populated later by GeoIP
             country:
-                serverConfig.country || null,
+                serverConfig.country ||
+                null,
 
             countryCode:
-                serverConfig.country_code || null,
+                serverConfig.country_code ||
+                null,
 
             countryFlag:
-                serverConfig.country_flag || null,
+                serverConfig.country_flag ||
+                null,
 
             // Keep the raw data in case additional information is needed later
-            raw: info.raw || null
+            raw:
+                info.raw ||
+                null
         };
+
     } catch (error) {
         console.error(
             `[GameServer Query] Failed to query ${serverConfig.name || 'server'}:`,
@@ -74,40 +115,53 @@ export async function fetchServerInfo(serverConfig) {
         return {
             online: false,
 
-            name: serverConfig.name || 'Game Server',
+            name:
+                serverConfig.name ||
+                'Game Server',
 
-            map: 'Unavailable',
+            map:
+                'Unavailable',
 
-            players: 0,
+            players:
+                0,
 
-            maxPlayers: 0,
+            maxPlayers:
+                0,
 
             playerList: [],
+
+            playerDetails: [],
 
             bots: [],
 
             botList: [],
 
-            botCount: 0,
+            botCount:
+                0,
 
-            ping: null,
+            ping:
+                null,
 
             connect:
-                serverConfig.host || serverConfig.ip
+                serverConfig.host ||
+                serverConfig.ip
                     ? `${serverConfig.host || serverConfig.ip}:${Number(serverConfig.port)}`
                     : null,
 
             country:
-                serverConfig.country || null,
+                serverConfig.country ||
+                null,
 
             countryCode:
-                serverConfig.country_code || null,
+                serverConfig.country_code ||
+                null,
 
             countryFlag:
-                serverConfig.country_flag || null,
+                serverConfig.country_flag ||
+                null,
 
-            raw: null
+            raw:
+                null
         };
     }
 }
-

@@ -88,7 +88,7 @@ export default {
             const hostInput = new TextInputBuilder()
                 .setCustomId('server_host')
                 .setLabel('IP / Host')
-                .setPlaceholder('Example: 51.38.123.45')
+                .setPlaceholder('Example: 51.38.123.45 (without port)')
                 .setStyle(TextInputStyle.Short)
                 .setRequired(true)
                 .setMaxLength(255);

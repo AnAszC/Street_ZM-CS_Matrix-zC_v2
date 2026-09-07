@@ -15,10 +15,11 @@ import { loadCommands, registerCommands as registerSlashCommands } from './handl
 import { runSafeTask, handleTaskError, ErrorCodes } from './utils/errorHandler.js';
 import { initializeMusic } from './services/music/riffySetup.js';
 import { shutdownMusic } from './services/music/playerHandler.js';
-import pkg from '../package.json' with { type: 'json' };
+/*import pkg from '../package.json' with { type: 'json' };*/
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
-// 🟢 إضافة استيراد مراقبة الخوادم
+// 🟢 Add location monitoring
 import ServerMonitorService from './services/gameServers/serverMonitorService.js';
+import { registerDashboardRoutes } from './dashboard/dashboardServer.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -160,27 +161,73 @@ class TitanBot extends Client {
     });
 
     const requestCounts = new Map();
-    const windowMs = this.config.api?.rateLimit?.windowMs || 60000;
-    const maxRequests = this.config.api?.rateLimit?.max || 100;
-    
+
+    const windowMs =
+        this.config.api?.rateLimit?.windowMs ||
+        60000;
+
+    const maxRequests =
+        this.config.api?.rateLimit?.max ||
+        100;
+
     app.use((req, res, next) => {
-      const ip = req.ip;
-      const now = Date.now();
-      const windowStart = now - windowMs;
-      
-      if (!requestCounts.has(ip)) {
-        requestCounts.set(ip, []);
-      }
-      
-      const times = requestCounts.get(ip).filter(t => t > windowStart);
-      
-      if (times.length >= maxRequests) {
-        return res.status(429).json({ error: 'Too many requests' });
-      }
-      
-      times.push(now);
-      requestCounts.set(ip, times);
-      next();
+        /*
+        * Dashboard pages and static assets must not consume
+        * the global API rate-limit quota.
+        *
+        * Protected by the dedicated dashboard API limiter
+        * in dashboardServer.js.
+        */
+        const isDashboardRequest =
+            req.path === '/' ||
+            req.path.startsWith('/servers/') ||
+            req.path.startsWith('/js/') ||
+            req.path.startsWith('/css/') ||
+            req.path.startsWith('/images/') ||
+            req.path.startsWith('/assets/') ||
+            req.path === '/favicon.ico' ||
+            req.path.endsWith('.ico') ||
+            req.path.endsWith('.png') ||
+            req.path.endsWith('.jpg') ||
+            req.path.endsWith('.jpeg') ||
+            req.path.endsWith('.gif') ||
+            req.path.endsWith('.svg') ||
+            req.path.endsWith('.webp');
+
+        if (isDashboardRequest) {
+            return next();
+        }
+
+        const ip = req.ip;
+        const now = Date.now();
+        const windowStart = now - windowMs;
+
+        if (!requestCounts.has(ip)) {
+            requestCounts.set(ip, []);
+        }
+
+        const times =
+            requestCounts
+                .get(ip)
+                .filter(
+                    timestamp =>
+                        timestamp > windowStart
+                );
+
+        if (times.length >= maxRequests) {
+            return res.status(429).json({
+                error: 'Too many requests'
+            });
+        }
+
+        times.push(now);
+
+        requestCounts.set(
+            ip,
+            times
+        );
+
+        next();
     });
 
     app.get('/health', (req, res) => {
@@ -198,53 +245,59 @@ class TitanBot extends Client {
       res.status(200).json(status);
     });
 
-    app.get('/ready', (req, res) => {
-      const dbStatus = this.db?.getStatus?.() || { isDegraded: true, connectionType: 'none' };
-      const isReady = this.isReady() && !dbStatus.isDegraded;
+        app.get('/ready', (req, res) => {
+        const dbStatus = this.db?.getStatus?.() || { isDegraded: true, connectionType: 'none' };
+        const isReady = this.isReady() && !dbStatus.isDegraded;
 
-      const metrics = {
-        guildCount: this.guilds?.cache?.size ?? 0,
-        commandCount: this.commands?.size ?? 0,
-        database: {
-          mode: dbStatus.connectionType,
-          degraded: dbStatus.isDegraded,
-          degradedReason: dbStatus.degradedReason ?? null,
-        },
-        schemaVersion: EXPECTED_SCHEMA_VERSION,
-        schemaLabel: EXPECTED_SCHEMA_LABEL,
-      };
+        const metrics = {
+          guildCount: this.guilds?.cache?.size ?? 0,
+          commandCount: this.commands?.size ?? 0,
+          database: {
+            mode: dbStatus.connectionType,
+            degraded: dbStatus.isDegraded,
+            degradedReason: dbStatus.degradedReason ?? null,
+          },
+          schemaVersion: EXPECTED_SCHEMA_VERSION,
+          schemaLabel: EXPECTED_SCHEMA_LABEL,
+        };
 
-      if (isReady) {
-        return res.status(200).json({
-          ready: true,
-          message: 'Bot is ready',
+        if (isReady) {
+          return res.status(200).json({
+            ready: true,
+            message: 'Bot is ready',
+            metrics,
+          });
+        }
+
+        res.status(503).json({
+          ready: false,
+          reason: !this.isReady() ? 'Bot not Ready' : 'Database degraded',
           metrics,
         });
-      }
-
-      res.status(503).json({
-        ready: false,
-        reason: !this.isReady() ? 'Bot not Ready' : 'Database degraded',
-        metrics,
       });
-    });
 
-    app.get('/', (req, res) => {
-      res.status(200).json({ 
-        message: 'TitanBot System Online',
-        version: pkg.version,
-        timestamp: new Date().toISOString()
+      /*
+      app.get('/', (req, res) => {
+        res.status(200).json({
+          message: 'CSMatrix-zC System Online',
+          version: pkg.version,
+          timestamp: new Date().toISOString()
+        });
       });
-    });
+      */
 
-    const startServer = (port, attempt = 0) => {
-      let hasStartedListening = false;
-      const server = app.listen(port, host, () => {
-        hasStartedListening = true;
-        this.webServer = server;
-        startupLog(`✅ Web Server running on ${host}:${port}`);
-        startupLog(`Health endpoint: http://${host}:${port}/health`);
-        startupLog(`Ready endpoint: http://${host}:${port}/ready`);
+      // Register Public Game Server Dashboard once
+      registerDashboardRoutes(app);
+
+      const startServer = (port, attempt = 0) => {
+        let hasStartedListening = false;
+
+        const server = app.listen(port, host, () => {
+          hasStartedListening = true;
+          this.webServer = server;
+          startupLog(`✅ Web Server running on ${host}:${port}`);
+          startupLog(`Health endpoint: http://${host}:${port}/health`);
+          startupLog(`Ready endpoint: http://${host}:${port}/ready`);
       });
 
       server.on('error', (error) => {

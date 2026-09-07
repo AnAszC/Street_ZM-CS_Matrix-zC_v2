@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>CSMatrix-zC World | Game Servers</title>
+
+    <link
+        rel="icon"
+        type="image/x-icon"
+        href="/LogoBot_csmatrixzc.ico"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/css/dashboard.css"
+    >
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="container header-inner">
+
+        <div class="brand-area">
+
+            <div class="brand">
+                CSMatrix-zC WORLD
+            </div>
+
+            <div class="subtitle">
+                Public Game Servers
+            </div>
+
+        </div>
+
+        <div class="header-status">
+
+            <span class="status-dot"></span>
+
+            <span id="lastUpdate">
+                Connecting...
+            </span>
+
+        </div>
+
+    </div>
+
+</header>
+
+<main class="container">
+
+    <section class="hero">
+
+        <div>
+
+            <p class="eyebrow">
+                GAME SERVER NETWORK
+            </p>
+
+            <h1>
+                Find your next server
+            </h1>
+
+            <p class="hero-text">
+                Live server information powered by
+                CSMatrix-zC Game Server Monitor.
+            </p>
+
+        </div>
+
+    </section>
+
+    <section class="stats-grid">
+
+        <div class="stat-card">
+
+            <span class="stat-label">
+                ONLINE
+            </span>
+
+            <strong
+                class="stat-value online-value"
+                id="onlineCount"
+            >
+                0
+            </strong>
+
+        </div>
+
+        <div class="stat-card">
+
+            <span class="stat-label">
+                OFFLINE
+            </span>
+
+            <strong
+                class="stat-value offline-value"
+                id="offlineCount"
+            >
+                0
+            </strong>
+
+        </div>
+
+        <div class="stat-card">
+
+            <span class="stat-label">
+                SERVERS
+            </span>
+
+            <strong
+                class="stat-value"
+                id="serverCount"
+            >
+                0
+            </strong>
+
+        </div>
+
+        <div class="stat-card">
+
+            <span class="stat-label">
+                PLAYERS
+            </span>
+
+            <strong
+                class="stat-value"
+                id="playerCount"
+            >
+                0
+            </strong>
+
+        </div>
+
+    </section>
+
+    <section class="toolbar">
+
+        <div class="search-box">
+
+            <span class="search-icon">
+                🔎
+            </span>
+
+            <input
+                id="searchInput"
+                type="search"
+                placeholder="Search servers..."
+                autocomplete="off"
+            >
+
+        </div>
+
+        <div class="filter-group">
+
+            <button
+                class="filter-button active"
+                type="button"
+                data-filter="all"
+            >
+                All
+            </button>
+
+            <button
+                class="filter-button"
+                type="button"
+                data-filter="online"
+            >
+                Online
+            </button>
+
+            <button
+                class="filter-button"
+                type="button"
+                data-filter="offline"
+            >
+                Offline
+            </button>
+
+        </div>
+
+        <select
+            id="sortSelect"
+            class="sort-select"
+        >
+            <option value="default">
+                Default
+            </option>
+
+            <option value="players">
+                Players
+            </option>
+
+            <option value="name">
+                Name
+            </option>
+
+            <option value="country">
+                Country
+            </option>
+        </select>
+
+        <button
+            id="refreshButton"
+            class="refresh-button"
+            type="button"
+        >
+            Refresh
+        </button>
+
+    </section>
+
+    <section class="server-section">
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>
+                    Game Servers
+                </h2>
+
+                <p id="resultSummary">
+                    Loading servers...
+                </p>
+
+            </div>
+
+        </div>
+
+        <div id="serverList">
+
+            <div class="loading">
+                Loading servers...
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+<footer class="site-footer">
+
+    <div>
+        CSMatrix-zC World
+    </div>
+
+    <div class="footer-version">
+        Game Server Monitor
+    </div>
+
+</footer>
+
+<script src="/js/dashboard.js"></script>
+
+</body>
+</html>

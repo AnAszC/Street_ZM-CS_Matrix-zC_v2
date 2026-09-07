@@ -1,5 +1,6 @@
 
 import crypto from 'crypto';
+import net from 'node:net';
 
 import {
     ActionRowBuilder,
@@ -52,6 +53,57 @@ function getVerificationGameType(gameType) {
     return String(gameType || 'unknown').toUpperCase();
 }
 
+/**
+ * Normalize the game server host.
+ *
+ * Examples:
+ * 46.174.50.74           -> 46.174.50.74
+ * 46.174.50.74:27015     -> 46.174.50.74
+ * example.com             -> example.com
+ * example.com:27015      -> example.com
+ * [2001:db8::1]:27015    -> 2001:db8::1
+ */
+
+function normalizeGameServerHost(value) {
+    let host = String(value || '').trim();
+
+    if (!host) {
+        return '';
+    }
+
+    host = host
+        .replace('http://', '')
+        .replace('https://', '');
+
+    host = host.split('/')[0];
+
+    if (host.startsWith('[')) {
+        const closingBracket = host.indexOf(']');
+
+        if (closingBracket !== -1) {
+            return host.slice(1, closingBracket);
+        }
+    }
+
+    if (net.isIP(host)) {
+        return host;
+    }
+
+    const portSeparator = host.lastIndexOf(':');
+
+    if (portSeparator > -1) {
+        const possiblePort = host.slice(portSeparator + 1);
+
+        if (
+            /^\d{1,5}$/.test(possiblePort)
+        ) {
+            return host.slice(0, portSeparator);
+        }
+    }
+
+    return host;
+}
+
 export default {
     name: 'gameserver_add',
 
@@ -71,9 +123,13 @@ export default {
                 .getTextInputValue('server_name')
                 .trim();
 
-            const host = interaction.fields
+            const rawHost = interaction.fields
                 .getTextInputValue('server_host')
                 .trim();
+
+            const host = normalizeGameServerHost(
+                rawHost
+            );
 
             const portValue = interaction.fields
                 .getTextInputValue('server_port')

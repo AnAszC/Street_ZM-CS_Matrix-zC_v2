@@ -1,4 +1,3 @@
-
 import {
     getMonitoredGameServers,
     updateGameServerStatus,
@@ -6,11 +5,16 @@ import {
     updateGameServerLocation
 } from './gameServerDatabase.js';
 
+import {
+    recordGameServerHistory,
+    recordGameServerPlayerPresence,
+    recordServerRankSnapshot
+} from './serverStatisticsDatabase.js';
+
 import { fetchServerInfo } from './gameQueryService.js';
 import { getIpLocation } from './geoIpService.js';
 import { buildServerEmbed } from './serverEmbed.js';
 import { gameServerConfig } from './serverConfig.js';
-
 
 import { pgDb } from '../../utils/postgresDatabase.js';
 import { logger } from '../../utils/logger.js';
@@ -62,12 +66,12 @@ class ServerMonitorService {
         );
 
         /*
-         * Run the first check immediately after startup
+         * Run the first check immediately after startup.
          */
         this.runCheck();
 
         /*
-         * Start the periodic monitoring cycle
+         * Start the periodic monitoring cycle.
          */
         this.interval = setInterval(() => {
             this.runCheck();
@@ -79,6 +83,7 @@ class ServerMonitorService {
             logger.warn(
                 '[GameServer Monitor] Previous check is still running, skipping.'
             );
+
             return;
         }
 
@@ -93,7 +98,8 @@ class ServerMonitorService {
                 return;
             }
 
-            const servers = await getMonitoredGameServers();
+            const servers =
+                await getMonitoredGameServers();
 
             if (!servers.length) {
                 logger.info(
@@ -108,7 +114,7 @@ class ServerMonitorService {
             );
 
             /*
-             * Check servers sequentially to avoid sending
+             * Check servers sequentially to avoid
              * too many requests at the same time.
              */
             for (const server of servers) {
@@ -122,6 +128,22 @@ class ServerMonitorService {
                 }
             }
 
+            /*
+             * Save the current daily
+             * CSMatrix-zC WORLD server ranking.
+             *
+             * recordServerRankSnapshot() itself prevents
+             * duplicate snapshots for the same day.
+             */
+            try {
+                await recordServerRankSnapshot();
+            } catch (error) {
+                logger.error(
+                    '[GameServer Monitor] Failed to record server rank snapshot:',
+                    error
+                );
+            }
+
             logger.info(
                 '[GameServer Monitor] Monitoring cycle completed.'
             );
@@ -131,6 +153,7 @@ class ServerMonitorService {
                 '[GameServer Monitor] Monitoring cycle failed:',
                 error
             );
+
         } finally {
             this.isChecking = false;
         }
@@ -144,27 +167,34 @@ class ServerMonitorService {
          * Online -> Offline
          * Offline -> Online
          */
-        const previousOnline = server.last_online;
+        const previousOnline =
+            server.last_online;
 
         /*
-         * Query the Game Server
+         * Query the Game Server.
          */
-        const serverData = await fetchServerInfo(server);
+        const serverData =
+            await fetchServerInfo(server);
 
         /*
-         * Save the new server status to PostgreSQL
+         * Save the new server status to PostgreSQL.
          */
-        const updatedServer = await updateGameServerStatus(
-            server.id,
-            {
-                online: serverData.online,
-                players: serverData.players,
-                maxPlayers: serverData.maxPlayers,
-                map: serverData.map,
-                ping: serverData.ping
-            }
-        );
+        const updatedServer =
+            await updateGameServerStatus(
+                server.id,
+                {
+                    online: serverData.online,
+                    players: serverData.players,
+                    maxPlayers: serverData.maxPlayers,
+                    map: serverData.map,
+                    ping: serverData.ping
+                }
+            );
 
+        /*
+         * Make sure the server still exists
+         * before writing any historical records.
+         */
         if (!updatedServer) {
             logger.warn(
                 `[GameServer Monitor] Server #${server.id} disappeared from database.`
@@ -174,9 +204,78 @@ class ServerMonitorService {
         }
 
         /*
-        * Detect and cache server country only once.
-        */
-        let serverForEmbed = updatedServer;
+         * Save historical server statistics.
+         *
+         * This uses the same Gamedig result that was already
+         * fetched above. No additional Game Server query is made.
+         */
+        try {
+            await recordGameServerHistory(
+                server.id,
+                {
+                    online:
+                        serverData.online,
+
+                    players:
+                        serverData.players,
+
+                    maxPlayers:
+                        serverData.maxPlayers,
+
+                    bots:
+                        serverData.botCount,
+
+                    map:
+                        serverData.map,
+
+                    ping:
+                        serverData.ping
+                }
+            );
+
+            /*
+             * Save player presence for historical
+             * player statistics and time played.
+             */
+            const playerDetails =
+                Array.isArray(
+                    serverData.playerDetails
+                )
+                    ? serverData.playerDetails
+                    : (
+                        Array.isArray(
+                            serverData.playerList
+                        )
+                            ? serverData.playerList.map(
+                                name => ({
+                                    name,
+                                    score: null
+                                })
+                            )
+                            : []
+                    );
+
+            await recordGameServerPlayerPresence(
+                server.id,
+                playerDetails
+            );
+
+        } catch (error) {
+            /*
+             * Historical statistics must never stop
+             * the normal Game Server Monitor.
+             */
+            logger.error(
+                `[GameServer Monitor] Failed to record historical statistics for #${server.id}:`,
+                error
+            );
+        }
+
+        /*
+         * Detect and cache server country only once.
+         */
+        let serverForEmbed =
+            updatedServer;
 
         if (!updatedServer.country_code) {
             const location =
@@ -198,28 +297,22 @@ class ServerMonitorService {
             }
         }
 
-         /* if (!updatedServer) {
-            logger.warn(
-                `[GameServer Monitor] Server #${server.id} disappeared from database.`
+        /*
+         * Build the new Embeds.
+         */
+        const embedResult =
+            buildServerEmbed(
+                serverForEmbed,
+                serverData
             );
 
-            return;
-        }*/
+        const embeds =
+            Array.isArray(embedResult)
+                ? embedResult
+                : [embedResult];
 
         /*
-         * Build the new Embeds
-         */
-        const embedResult = buildServerEmbed(
-            serverForEmbed,
-            serverData
-        );
-
-        const embeds = Array.isArray(embedResult)
-            ? embedResult
-            : [embedResult];
-
-        /*
-         * Update the Discord message
+         * Update the Discord message.
          */
         await this.updateServerMessage(
             updatedServer,
@@ -229,9 +322,10 @@ class ServerMonitorService {
         /*
          * Do not send an alert during the first check.
          */
-        const isFirstCheck = !this.initializedServers.has(
-            server.id
-        );
+        const isFirstCheck =
+            !this.initializedServers.has(
+                server.id
+            );
 
         if (!isFirstCheck) {
             await this.handleStatusChange(
@@ -241,7 +335,9 @@ class ServerMonitorService {
             );
         }
 
-        this.initializedServers.add(server.id);
+        this.initializedServers.add(
+            server.id
+        );
 
         logger.info(
             `[GameServer Monitor] #${server.id} ${server.name}: ` +
@@ -251,7 +347,10 @@ class ServerMonitorService {
         );
     }
 
-    async updateServerMessage(server, embeds) {
+    async updateServerMessage(
+        server,
+        embeds
+    ) {
         /*
          * The server needs a channel_id and message_id
          * so we can update the existing Discord message.
@@ -266,9 +365,10 @@ class ServerMonitorService {
         }
 
         try {
-            const channel = await this.client.channels.fetch(
-                server.channel_id
-            );
+            const channel =
+                await this.client.channels.fetch(
+                    server.channel_id
+                );
 
             if (!channel) {
                 logger.warn(
@@ -280,7 +380,8 @@ class ServerMonitorService {
             }
 
             /*
-             * If there is no message_id, create a new message.
+             * If there is no message_id,
+             * create a new message.
              */
             if (!server.message_id) {
                 await this.createServerMessage(
@@ -293,63 +394,85 @@ class ServerMonitorService {
             }
 
             try {
-                const message = await channel.messages.fetch(
-                    server.message_id
-                );
+                const message =
+                    await channel.messages.fetch(
+                        server.message_id
+                    );
 
                 /*
                  * Rebuild the Game Server buttons.
                  */
-                const refreshButton = new ButtonBuilder()
-                    .setCustomId(`refresh_server:${server.id}`)
-                    .setLabel('Refresh')
-                    .setEmoji('🔄')
-                    .setStyle(ButtonStyle.Secondary);
+                const refreshButton =
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `refresh_server:${server.id}`
+                        )
+                        .setLabel('Refresh')
+                        .setEmoji('🔄')
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        );
 
-                const playersButton = new ButtonBuilder()
-                    .setCustomId(`toggle_players:${server.id}`)
-                    .setLabel(
-                        server.show_players === false
-                            ? 'Show Players'
-                            : 'Hide Players'
-                    )
-                    .setEmoji(
-                        server.show_players === false
-                            ? '👥'
-                            : '🙈'
-                    )
-                    .setStyle(ButtonStyle.Primary);
+                const playersButton =
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `toggle_players:${server.id}`
+                        )
+                        .setLabel(
+                            server.show_players === false
+                                ? 'Show Players'
+                                : 'Hide Players'
+                        )
+                        .setEmoji(
+                            server.show_players === false
+                                ? '👥'
+                                : '🙈'
+                        )
+                        .setStyle(
+                            ButtonStyle.Primary
+                        );
 
-                const claimButton = new ButtonBuilder()
-                .setCustomId(`claim_server:${server.id}`)
-                .setLabel(
-                    server.ownership_verified
-                        ? 'Verified'
-                        : 'Claim This Server'
-                )
-                .setEmoji(
-                    server.ownership_verified
-                        ? '✅'
-                        : '🔐'
-                )
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(
-                    server.ownership_verified === true
-                );
+                const claimButton =
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `claim_server:${server.id}`
+                        )
+                        .setLabel(
+                            server.ownership_verified
+                                ? 'Verified'
+                                : 'Claim This Server'
+                        )
+                        .setEmoji(
+                            server.ownership_verified
+                                ? '✅'
+                                : '🔐'
+                        )
+                        .setStyle(
+                            ButtonStyle.Success
+                        )
+                        .setDisabled(
+                            server.ownership_verified === true
+                        );
 
-                const deleteButton = new ButtonBuilder()
-                    .setCustomId(`delete_server:${server.id}`)
-                    .setLabel('Delete')
-                    .setEmoji('🗑️')
-                    .setStyle(ButtonStyle.Danger);
+                const deleteButton =
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `delete_server:${server.id}`
+                        )
+                        .setLabel('Delete')
+                        .setEmoji('🗑️')
+                        .setStyle(
+                            ButtonStyle.Danger
+                        );
 
-                const row = new ActionRowBuilder()
-                    .addComponents(
-                        refreshButton,
-                        playersButton,
-                        claimButton,
-                        deleteButton
-                    );
+                const row =
+                    new ActionRowBuilder()
+                        .addComponents(
+                            refreshButton,
+                            playersButton,
+                            claimButton,
+                            deleteButton
+                        );
 
                 /*
                  * Update the Embeds and buttons.
@@ -365,7 +488,7 @@ class ServerMonitorService {
             } catch (error) {
                 /*
                  * Discord error 10008 =
-                 * Unknown Message
+                 * Unknown Message.
                  */
                 if (error?.code === 10008) {
                     logger.warn(
@@ -395,69 +518,95 @@ class ServerMonitorService {
         }
     }
 
-    async createServerMessage(server, channel, embeds) {
+    async createServerMessage(
+        server,
+        channel,
+        embeds
+    ) {
         try {
             /*
-             * Refresh button
+             * Refresh button.
              */
-            const refreshButton = new ButtonBuilder()
-                .setCustomId(`refresh_server:${server.id}`)
-                .setLabel('Refresh')
-                .setEmoji('🔄')
-                .setStyle(ButtonStyle.Secondary);
+            const refreshButton =
+                new ButtonBuilder()
+                    .setCustomId(
+                        `refresh_server:${server.id}`
+                    )
+                    .setLabel('Refresh')
+                    .setEmoji('🔄')
+                    .setStyle(
+                        ButtonStyle.Secondary
+                    );
 
-            const playersButton = new ButtonBuilder()
-                .setCustomId(`toggle_players:${server.id}`)
-                .setLabel(
-                    server.show_players === false
-                        ? 'Show Players'
-                        : 'Hide Players'
-                )
-                .setEmoji(
-                    server.show_players === false
-                        ? '👥'
-                        : '🙈'
-                )
-                .setStyle(ButtonStyle.Primary);
+            const playersButton =
+                new ButtonBuilder()
+                    .setCustomId(
+                        `toggle_players:${server.id}`
+                    )
+                    .setLabel(
+                        server.show_players === false
+                            ? 'Show Players'
+                            : 'Hide Players'
+                    )
+                    .setEmoji(
+                        server.show_players === false
+                            ? '👥'
+                            : '🙈'
+                    )
+                    .setStyle(
+                        ButtonStyle.Primary
+                    );
 
-            const claimButton = new ButtonBuilder()
-            .setCustomId(`claim_server:${server.id}`)
-            .setLabel(
-                server.ownership_verified
-                    ? 'Verified'
-                    : 'Claim This Server'
-            )
-            .setEmoji(
-                server.ownership_verified
-                    ? '✅'
-                    : '🔐'
-            )
-            .setStyle(ButtonStyle.Success)
-            .setDisabled(
-                server.ownership_verified === true
-            );
+            const claimButton =
+                new ButtonBuilder()
+                    .setCustomId(
+                        `claim_server:${server.id}`
+                    )
+                    .setLabel(
+                        server.ownership_verified
+                            ? 'Verified'
+                            : 'Claim This Server'
+                    )
+                    .setEmoji(
+                        server.ownership_verified
+                            ? '✅'
+                            : '🔐'
+                    )
+                    .setStyle(
+                        ButtonStyle.Success
+                    )
+                    .setDisabled(
+                        server.ownership_verified === true
+                    );
 
-            const deleteButton = new ButtonBuilder()
-                .setCustomId(`delete_server:${server.id}`)
-                .setLabel('Delete')
-                .setEmoji('🗑️')
-                .setStyle(ButtonStyle.Danger);
+            const deleteButton =
+                new ButtonBuilder()
+                    .setCustomId(
+                        `delete_server:${server.id}`
+                    )
+                    .setLabel('Delete')
+                    .setEmoji('🗑️')
+                    .setStyle(
+                        ButtonStyle.Danger
+                    );
 
-            const row = new ActionRowBuilder()
-                .addComponents(
-                    refreshButton,
-                    playersButton,
-                    claimButton,
-                    deleteButton
-                );
+            const row =
+                new ActionRowBuilder()
+                    .addComponents(
+                        refreshButton,
+                        playersButton,
+                        claimButton,
+                        deleteButton
+                    );
 
             /*
-             * Send the new message
+             * Send the new message.
              */
-            const message = await channel.send({
-                embeds,
-                components: [row]
-            });
+            const message =
+                await channel.send({
+                    embeds,
+                    components: [row]
+                });
 
             /*
              * Save the new channel_id and message_id
@@ -493,14 +642,16 @@ class ServerMonitorService {
         currentOnline
     ) {
         /*
-         * No status change
+         * No status change.
          */
-        if (previousOnline === currentOnline) {
+        if (
+            previousOnline === currentOnline
+        ) {
             return;
         }
 
         /*
-         * Alerts are disabled for this server
+         * Alerts are disabled for this server.
          */
         if (!server.alert_enabled) {
             logger.info(
@@ -512,9 +663,12 @@ class ServerMonitorService {
         }
 
         /*
-         * Offline -> Online
+         * Offline -> Online.
          */
-        if (previousOnline === false && currentOnline === true) {
+        if (
+            previousOnline === false &&
+            currentOnline === true
+        ) {
             await this.sendStatusAlert(
                 server,
                 'online'
@@ -524,9 +678,12 @@ class ServerMonitorService {
         }
 
         /*
-         * Online -> Offline
+         * Online -> Offline.
          */
-        if (previousOnline === true && currentOnline === false) {
+        if (
+            previousOnline === true &&
+            currentOnline === false
+        ) {
             await this.sendStatusAlert(
                 server,
                 'offline'
@@ -534,7 +691,10 @@ class ServerMonitorService {
         }
     }
 
-    async sendStatusAlert(server, status) {
+    async sendStatusAlert(
+        server,
+        status
+    ) {
         if (!server.alert_channel_id) {
             logger.warn(
                 `[GameServer Monitor] Server #${server.id} ` +
@@ -545,9 +705,10 @@ class ServerMonitorService {
         }
 
         try {
-            const channel = await this.client.channels.fetch(
-                server.alert_channel_id
-            );
+            const channel =
+                await this.client.channels.fetch(
+                    server.alert_channel_id
+                );
 
             if (!channel) {
                 logger.warn(
@@ -609,7 +770,10 @@ class ServerMonitorService {
             return;
         }
 
-        clearInterval(this.interval);
+        clearInterval(
+            this.interval
+        );
+
         this.interval = null;
 
         logger.info(
@@ -619,4 +783,3 @@ class ServerMonitorService {
 }
 
 export default ServerMonitorService;
-

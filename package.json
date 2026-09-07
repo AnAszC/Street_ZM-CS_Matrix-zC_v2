@@ -1,7 +1,7 @@
 {
-  "name": "titanbot",
-  "version": "2.1.0",
-  "description": "Modular Ultimate Community Bot by Touchpoint Support",
+  "name": "csmatrix-zc",
+  "version": "2.1.3",
+  "description": "CSMatrix-zC World Discord Bot",
   "main": "src/app.js",
   "type": "module",
   "scripts": {

@@ -97,12 +97,6 @@ export const tableStatements = [
     ADD COLUMN IF NOT EXISTS country_code VARCHAR(2)`,
 
     `ALTER TABLE ${t.game_servers}
-    ADD COLUMN IF NOT EXISTS country TEXT`,
-
-    `ALTER TABLE ${t.game_servers}
-    ADD COLUMN IF NOT EXISTS country_code VARCHAR(2)`,
-
-    `ALTER TABLE ${t.game_servers}
     ADD COLUMN IF NOT EXISTS country_flag VARCHAR(16)`,
 
 
@@ -128,6 +122,81 @@ export const tableStatements = [
         FOREIGN KEY (server_id)
             REFERENCES ${t.game_servers}(id)
             ON DELETE CASCADE
+    )`,
+
+        `CREATE TABLE IF NOT EXISTS game_server_history (
+        id BIGSERIAL PRIMARY KEY,
+
+        server_id INTEGER NOT NULL,
+
+        online BOOLEAN NOT NULL DEFAULT FALSE,
+        players INTEGER NOT NULL DEFAULT 0,
+        max_players INTEGER NOT NULL DEFAULT 0,
+        bots INTEGER NOT NULL DEFAULT 0,
+
+        map VARCHAR(255),
+        ping INTEGER,
+
+        recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+        FOREIGN KEY (server_id)
+            REFERENCES ${t.game_servers}(id)
+            ON DELETE CASCADE
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS game_server_player_stats (
+        server_id INTEGER NOT NULL,
+
+        player_key VARCHAR(255) NOT NULL,
+        player_name VARCHAR(255) NOT NULL,
+
+        score INTEGER,
+
+        first_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+        total_seconds BIGINT NOT NULL DEFAULT 0,
+
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+        PRIMARY KEY (
+            server_id,
+            player_key
+        ),
+
+        FOREIGN KEY (server_id)
+            REFERENCES ${t.game_servers}(id)
+            ON DELETE CASCADE
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS game_server_rank_history (
+        id BIGSERIAL PRIMARY KEY,
+
+        server_id INTEGER NOT NULL,
+
+        rank INTEGER NOT NULL,
+
+        rank_score NUMERIC(10, 4) NOT NULL DEFAULT 0,
+
+        average_occupancy NUMERIC(10, 4) NOT NULL DEFAULT 0,
+
+        uptime_percentage NUMERIC(10, 4) NOT NULL DEFAULT 0,
+
+        peak_occupancy NUMERIC(10, 4) NOT NULL DEFAULT 0,
+
+        recorded_date DATE NOT NULL DEFAULT CURRENT_DATE,
+
+        recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+        FOREIGN KEY (server_id)
+            REFERENCES ${t.game_servers}(id)
+            ON DELETE CASCADE,
+
+        UNIQUE (
+            server_id,
+            recorded_date
+        )
     )`,
     
     `CREATE TABLE IF NOT EXISTS ${t.users} (
@@ -310,6 +379,17 @@ export const indexStatements = [
     `CREATE INDEX IF NOT EXISTS idx_cache_data_expires_at ON ${t.cache_data}(expires_at)`,
     `CREATE INDEX IF NOT EXISTS idx_game_server_ownership_claims_user ON game_server_ownership_claims(user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_game_server_ownership_claims_locked ON game_server_ownership_claims(locked_until)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_history_server_id ON game_server_history(server_id)`,
+
+    `CREATE INDEX IF NOT EXISTS idx_game_server_history_recorded_at ON game_server_history(recorded_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_history_server_time ON game_server_history(server_id, recorded_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_player_stats_server_id ON game_server_player_stats(server_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_player_stats_last_seen ON game_server_player_stats(last_seen)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_player_stats_total_seconds ON game_server_player_stats(total_seconds DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_rank_history_server_id ON game_server_rank_history(server_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_rank_history_recorded_at ON game_server_rank_history(recorded_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_game_server_rank_history_server_time ON game_server_rank_history(server_id, recorded_at)`,
+     `CREATE INDEX IF NOT EXISTS idx_game_server_rank_history_server_date ON game_server_rank_history(server_id, recorded_date)`,
 ];
 
 export const UPDATE_TIMESTAMP_FUNCTION = `
