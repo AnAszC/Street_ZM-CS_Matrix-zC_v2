@@ -1,11 +1,26 @@
 const REFRESH_INTERVAL = 10000;
 
+const PAGE_SIZE_OPTIONS = [
+    10,
+    20,
+    30,
+    50,
+    100
+];
+
+const DEFAULT_SERVERS_PER_PAGE = 20;
+
+
 const state = {
     servers: [],
     filter: 'all',
     search: '',
-    sort: 'default'
+    sort: 'default',
+    currentPage: 1,
+    serversPerPage:
+        DEFAULT_SERVERS_PER_PAGE
 };
+
 
 const serverList =
     document.getElementById('serverList');
@@ -43,12 +58,129 @@ const filterButtons =
     );
 
 
+let paginationContainer = null;
+
+
+/* =========================
+   PAGE SIZE SELECTOR
+========================= */
+
+function createPageSizeSelector() {
+    const existing =
+        document.getElementById(
+            'serversPerPageSelect'
+        );
+
+    if (existing) {
+        return existing;
+    }
+
+    const select =
+        document.createElement(
+            'select'
+        );
+
+    select.id =
+        'serversPerPageSelect';
+
+    select.className =
+        'page-size-select';
+
+    select.setAttribute(
+        'aria-label',
+        'Servers per page'
+    );
+
+    for (
+        const optionValue
+        of PAGE_SIZE_OPTIONS
+    ) {
+        const option =
+            document.createElement(
+                'option'
+            );
+
+        option.value =
+            String(optionValue);
+
+        option.textContent =
+            `${optionValue} / page`;
+
+        if (
+            optionValue ===
+            DEFAULT_SERVERS_PER_PAGE
+        ) {
+            option.selected = true;
+        }
+
+        select.appendChild(
+            option
+        );
+    }
+
+    if (sortSelect) {
+        sortSelect.insertAdjacentElement(
+            'afterend',
+            select
+        );
+    } else if (refreshButton) {
+        refreshButton.insertAdjacentElement(
+            'beforebegin',
+            select
+        );
+    }
+
+    select.addEventListener(
+        'change',
+        event => {
+            const value =
+                Number(
+                    event.target.value
+                );
+
+            if (
+                !PAGE_SIZE_OPTIONS.includes(
+                    value
+                )
+            ) {
+                return;
+            }
+
+            state.serversPerPage =
+                value;
+
+            resetPagination();
+
+            renderServers();
+        }
+    );
+
+    return select;
+}
+
+
+/* =========================
+   HTML HELPERS
+========================= */
+
 function escapeHtml(value) {
     return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
+        .replaceAll(
+            '&',
+            '&amp;'
+        )
+        .replaceAll(
+            '<',
+            '&lt;'
+        )
+        .replaceAll(
+            '>',
+            '&gt;'
+        )
+        .replaceAll(
+            '"',
+            '&quot;'
+        )
         .replaceAll(
             "'",
             '&#039;'
@@ -180,11 +312,6 @@ function handleServerNotFoundNotification() {
         serverNotFound
     );
 
-    /*
-     * Remove the query parameter from
-     * the address bar so refreshing the
-     * homepage does not show the notification again.
-     */
     window.history.replaceState(
         {},
         document.title,
@@ -513,6 +640,281 @@ function getVisibleServers() {
 
 
 /* =========================
+   PAGINATION HELPERS
+========================= */
+
+function getTotalPages(
+    totalItems
+) {
+    return Math.max(
+        1,
+        Math.ceil(
+            totalItems /
+            state.serversPerPage
+        )
+    );
+}
+
+
+function ensurePaginationPage(
+    totalItems
+) {
+    const totalPages =
+        getTotalPages(
+            totalItems
+        );
+
+    if (
+        state.currentPage >
+        totalPages
+    ) {
+        state.currentPage =
+            totalPages;
+    }
+
+    if (
+        state.currentPage <
+        1
+    ) {
+        state.currentPage = 1;
+    }
+
+    return totalPages;
+}
+
+
+function getPaginatedServers(
+    visibleServers
+) {
+    const totalPages =
+        ensurePaginationPage(
+            visibleServers.length
+        );
+
+    const startIndex =
+        (
+            state.currentPage -
+            1
+        ) *
+        state.serversPerPage;
+
+    const endIndex =
+        startIndex +
+        state.serversPerPage;
+
+    return {
+        servers:
+            visibleServers.slice(
+                startIndex,
+                endIndex
+            ),
+        totalPages,
+        startIndex,
+        endIndex
+    };
+}
+
+
+function createPaginationContainer() {
+    if (paginationContainer) {
+        return paginationContainer;
+    }
+
+    paginationContainer =
+        document.createElement(
+            'div'
+        );
+
+    paginationContainer.className =
+        'server-pagination';
+
+    paginationContainer.setAttribute(
+        'aria-label',
+        'Server pagination'
+    );
+
+    serverList.insertAdjacentElement(
+        'afterend',
+        paginationContainer
+    );
+
+    return paginationContainer;
+}
+
+
+function renderPagination(
+    visibleCount
+) {
+    const container =
+        createPaginationContainer();
+
+    const totalPages =
+        getTotalPages(
+            visibleCount
+        );
+
+    ensurePaginationPage(
+        visibleCount
+    );
+
+    if (
+        visibleCount <=
+        state.serversPerPage
+    ) {
+        container.innerHTML = '';
+
+        container.classList.remove(
+            'visible'
+        );
+
+        return;
+    }
+
+    const previousDisabled =
+        state.currentPage <= 1;
+
+    const nextDisabled =
+        state.currentPage >=
+        totalPages;
+
+    let startPage =
+        Math.max(
+            1,
+            state.currentPage - 2
+        );
+
+    let endPage =
+        Math.min(
+            totalPages,
+            startPage + 4
+        );
+
+    if (
+        endPage -
+        startPage <
+        4
+    ) {
+        startPage =
+            Math.max(
+                1,
+                endPage - 4
+            );
+    }
+
+    const pages = [];
+
+    for (
+        let page = startPage;
+        page <= endPage;
+        page++
+    ) {
+        pages.push(
+            `
+                <button
+                    type="button"
+                    class="pagination-page ${
+                        page ===
+                        state.currentPage
+                            ? 'active'
+                            : ''
+                    }"
+                    data-page="${page}"
+                    ${
+                        page ===
+                        state.currentPage
+                            ? 'aria-current="page"'
+                            : ''
+                    }
+                >
+                    ${page}
+                </button>
+            `
+        );
+    }
+
+    const startIndex =
+        (
+            state.currentPage -
+            1
+        ) *
+        state.serversPerPage;
+
+    const currentStart =
+        startIndex + 1;
+
+    const currentEnd =
+        Math.min(
+            startIndex +
+            state.serversPerPage,
+            visibleCount
+        );
+
+    container.innerHTML = `
+        <div class="pagination-info">
+
+            Showing
+
+            <strong>
+                ${currentStart}-${currentEnd}
+            </strong>
+
+            of
+
+            <strong>
+                ${visibleCount}
+            </strong>
+
+            servers
+
+        </div>
+
+        <div class="pagination-controls">
+
+            <button
+                type="button"
+                class="pagination-button"
+                data-page-action="previous"
+                ${
+                    previousDisabled
+                        ? 'disabled'
+                        : ''
+                }
+            >
+                ← Previous
+            </button>
+
+            <div class="pagination-pages">
+                ${pages.join('')}
+            </div>
+
+            <button
+                type="button"
+                class="pagination-button"
+                data-page-action="next"
+                ${
+                    nextDisabled
+                        ? 'disabled'
+                        : ''
+                }
+            >
+                Next →
+            </button>
+
+        </div>
+    `;
+
+    container.classList.add(
+        'visible'
+    );
+}
+
+
+function resetPagination() {
+    state.currentPage = 1;
+}
+
+
+/* =========================
    RENDER SERVERS
 ========================= */
 
@@ -522,10 +924,11 @@ function renderServers() {
 
     updateStats();
 
-    resultSummary.textContent =
-        `${visibleServers.length} of ${state.servers.length} servers`;
-
     if (!visibleServers.length) {
+
+        resultSummary.textContent =
+            `0 of ${state.servers.length} servers`;
+
         serverList.className = '';
 
         serverList.innerHTML = `
@@ -534,18 +937,45 @@ function renderServers() {
             </div>
         `;
 
+        renderPagination(0);
+
         return;
     }
+
+    const paginated =
+        getPaginatedServers(
+            visibleServers
+        );
+
+    const displayedServers =
+        paginated.servers;
+
+    const currentStart =
+        paginated.startIndex + 1;
+
+    const currentEnd =
+        Math.min(
+            paginated.startIndex +
+                displayedServers.length,
+            visibleServers.length
+        );
+
+    resultSummary.textContent =
+        `${currentStart}-${currentEnd} of ${visibleServers.length} servers`;
 
     serverList.className =
         'server-list';
 
     serverList.innerHTML =
-        visibleServers
+        displayedServers
             .map(
                 buildServerCard
             )
             .join('');
+
+    renderPagination(
+        visibleServers.length
+    );
 }
 
 
@@ -555,12 +985,15 @@ function renderServers() {
 
 async function copyConnectValue(value) {
     try {
+
         await navigator.clipboard.writeText(
             value
         );
 
         return true;
+
     } catch {
+
         return false;
     }
 }
@@ -571,7 +1004,9 @@ async function copyConnectValue(value) {
 ========================= */
 
 async function loadServers() {
+
     try {
+
         refreshButton.disabled = true;
 
         const response =
@@ -583,6 +1018,7 @@ async function loadServers() {
             );
 
         if (!response.ok) {
+
             throw new Error(
                 `HTTP ${response.status}`
             );
@@ -597,6 +1033,7 @@ async function loadServers() {
                 data.servers
             )
         ) {
+
             throw new Error(
                 'Invalid server data'
             );
@@ -604,6 +1041,13 @@ async function loadServers() {
 
         state.servers =
             data.servers;
+
+        const visibleServers =
+            getVisibleServers();
+
+        ensurePaginationPage(
+            visibleServers.length
+        );
 
         renderServers();
 
@@ -631,8 +1075,20 @@ async function loadServers() {
         lastUpdate.textContent =
             'Update failed';
 
+        if (paginationContainer) {
+
+            paginationContainer.innerHTML =
+                '';
+
+            paginationContainer.classList.remove(
+                'visible'
+            );
+        }
+
     } finally {
-        refreshButton.disabled = false;
+
+        refreshButton.disabled =
+            false;
     }
 }
 
@@ -644,8 +1100,11 @@ async function loadServers() {
 searchInput.addEventListener(
     'input',
     event => {
+
         state.search =
             event.target.value.trim();
+
+        resetPagination();
 
         renderServers();
     }
@@ -659,8 +1118,11 @@ searchInput.addEventListener(
 sortSelect.addEventListener(
     'change',
     event => {
+
         state.sort =
             event.target.value;
+
+        resetPagination();
 
         renderServers();
     }
@@ -673,9 +1135,11 @@ sortSelect.addEventListener(
 
 filterButtons.forEach(
     button => {
+
         button.addEventListener(
             'click',
             () => {
+
                 state.filter =
                     button.dataset.filter;
 
@@ -687,9 +1151,99 @@ filterButtons.forEach(
                         )
                 );
 
+                resetPagination();
+
                 renderServers();
             }
         );
+    }
+);
+
+
+/* =========================
+   PAGINATION EVENTS
+========================= */
+
+document.addEventListener(
+    'click',
+    event => {
+
+        const pageButton =
+            event.target.closest(
+                '.pagination-page'
+            );
+
+        if (pageButton) {
+
+            const page =
+                Number(
+                    pageButton.dataset.page
+                );
+
+            if (
+                Number.isInteger(page) &&
+                page >= 1
+            ) {
+
+                state.currentPage =
+                    page;
+
+                renderServers();
+            }
+
+            return;
+        }
+
+
+        const actionButton =
+            event.target.closest(
+                '[data-page-action]'
+            );
+
+        if (!actionButton) {
+            return;
+        }
+
+
+        const action =
+            actionButton.dataset.pageAction;
+
+        const visibleServers =
+            getVisibleServers();
+
+        const totalPages =
+            getTotalPages(
+                visibleServers.length
+            );
+
+
+        if (
+            action ===
+            'previous'
+        ) {
+
+            state.currentPage =
+                Math.max(
+                    1,
+                    state.currentPage - 1
+                );
+        }
+
+
+        if (
+            action ===
+            'next'
+        ) {
+
+            state.currentPage =
+                Math.min(
+                    totalPages,
+                    state.currentPage + 1
+                );
+        }
+
+
+        renderServers();
     }
 );
 
@@ -711,6 +1265,7 @@ refreshButton.addEventListener(
 serverList.addEventListener(
     'click',
     async event => {
+
         const button =
             event.target.closest(
                 '.copy-connect'
@@ -754,6 +1309,8 @@ serverList.addEventListener(
 /* =========================
    START
 ========================= */
+
+createPageSizeSelector();
 
 handleServerNotFoundNotification();
 

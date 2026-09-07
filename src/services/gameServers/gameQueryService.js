@@ -1,50 +1,57 @@
+
 import gamedig from 'gamedig';
 
 const { query } = gamedig;
 
-export async function fetchServerInfo(serverConfig) {
+
+/**
+ * Query a Game Server.
+ *
+ * @param {Object} serverConfig
+ * @param {Object} options
+ * @param {boolean} options.throwOnFailure
+ *
+ * When throwOnFailure = true:
+ * - A successful query returns the normal server data.
+ * - A failed query throws the original error.
+ *
+ * When throwOnFailure = false:
+ * - A successful query returns the normal server data.
+ * - A failed query returns querySuccess: false.
+ */
+export async function fetchServerInfo(
+    serverConfig,
+    options = {}
+) {
+
+    const {
+        throwOnFailure = false
+    } = options;
+
+
     try {
-        const info = await query({
-            type:
-                serverConfig.type ||
-                serverConfig.game_type ||
-                'cs16',
 
-            host:
-                serverConfig.host ||
-                serverConfig.ip,
+        const info =
+            await query({
+                type:
+                    serverConfig.type ||
+                    serverConfig.game_type ||
+                    'cs16',
 
-            port: Number(serverConfig.port)
-        });
+                host:
+                    serverConfig.host ||
+                    serverConfig.ip,
 
-        const playerDetails = Array.isArray(info.players)
-            ? info.players
-                .map(player => ({
-                    name: player?.name || '',
+                port:
+                    Number(
+                        serverConfig.port
+                    )
+            });
 
-                    score:
-                        Number.isFinite(
-                            Number(player?.score)
-                        )
-                            ? Number(player.score)
-                            : null
-                }))
-                .filter(player => player.name)
-                .slice(0, 20)
-            : [];
-
-        const playerList = playerDetails.map(
-            player => player.name
-        );
-
-        const botList = Array.isArray(info.bots)
-            ? info.bots
-                .map(bot => bot.name)
-                .filter(Boolean)
-                .slice(0, 20)
-            : [];
 
         return {
+            querySuccess: true,
+
             online: true,
 
             name:
@@ -64,55 +71,94 @@ export async function fetchServerInfo(serverConfig) {
                 info.maxplayers ||
                 0,
 
-            playerList,
+            playerList:
+                Array.isArray(info.players)
+                    ? info.players
+                        .map(
+                            player =>
+                                player.name
+                        )
+                        .filter(Boolean)
+                        .slice(0, 20)
+                    : [],
 
-            /*
-             * Full player information used by
-             * Historical Statistics.
-             */
-            playerDetails,
+            playerDetails:
+                Array.isArray(info.players)
+                    ? info.players
+                        .map(
+                            player => ({
+                                name:
+                                    player.name ||
+                                    null,
 
-            bots: botList,
+                                score:
+                                    player.score ??
+                                    null
+                            })
+                        )
+                        .filter(
+                            player =>
+                                Boolean(
+                                    player.name
+                                )
+                        )
+                        .slice(0, 20)
+                    : [],
 
-            botList,
+            botList:
+                Array.isArray(info.bots)
+                    ? info.bots
+                        .map(
+                            bot =>
+                                bot.name ||
+                                null
+                        )
+                        .filter(Boolean)
+                        .slice(0, 20)
+                    : [],
 
             botCount:
-                botList.length,
+                Array.isArray(info.bots)
+                    ? info.bots.length
+                    : 0,
 
             ping:
                 info.ping ||
-                null,
-
-            connect:
-                info.connect ||
-                `${serverConfig.host || serverConfig.ip}:${Number(serverConfig.port)}`,
-
-            // Will be populated later by GeoIP
-            country:
-                serverConfig.country ||
-                null,
-
-            countryCode:
-                serverConfig.country_code ||
-                null,
-
-            countryFlag:
-                serverConfig.country_flag ||
-                null,
-
-            // Keep the raw data in case additional information is needed later
-            raw:
-                info.raw ||
                 null
         };
 
+
     } catch (error) {
+
         console.error(
-            `[GameServer Query] Failed to query ${serverConfig.name || 'server'}:`,
+            `[GameServer Query] Failed to query ${
+                serverConfig.name ||
+                'server'
+            }:`,
             error.message
         );
 
+
+        /*
+         * The Game Server Monitor can request
+         * the original error to be thrown.
+         *
+         * This allows the monitor to count
+         * consecutive Query failures.
+         */
+        if (throwOnFailure) {
+
+            throw error;
+        }
+
+
+        /*
+         * Keep the existing behavior for
+         * all other callers in the project.
+         */
         return {
+            querySuccess: false,
+
             online: false,
 
             name:
@@ -122,46 +168,23 @@ export async function fetchServerInfo(serverConfig) {
             map:
                 'Unavailable',
 
-            players:
-                0,
+            players: 0,
 
-            maxPlayers:
-                0,
+            maxPlayers: 0,
 
             playerList: [],
 
             playerDetails: [],
 
-            bots: [],
-
             botList: [],
 
-            botCount:
-                0,
+            botCount: 0,
 
-            ping:
-                null,
+            ping: null,
 
-            connect:
-                serverConfig.host ||
-                serverConfig.ip
-                    ? `${serverConfig.host || serverConfig.ip}:${Number(serverConfig.port)}`
-                    : null,
-
-            country:
-                serverConfig.country ||
-                null,
-
-            countryCode:
-                serverConfig.country_code ||
-                null,
-
-            countryFlag:
-                serverConfig.country_flag ||
-                null,
-
-            raw:
-                null
+            error:
+                error.message
         };
     }
 }
+

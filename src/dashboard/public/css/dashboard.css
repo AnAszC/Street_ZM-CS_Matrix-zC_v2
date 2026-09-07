@@ -1,4 +1,5 @@
 :root {
+
     font-family:
         Inter,
         system-ui,
@@ -10,18 +11,29 @@
     color-scheme: dark;
 
     background: #07090c;
+
     color: #f4f7fa;
 
     --bg: #07090c;
+
     --panel: #101419;
+
     --panel-soft: #0c1116;
+
     --border: #202830;
+
     --border-hover: #35414c;
+
     --text: #f4f7fa;
+
     --muted: #89949e;
+
     --muted-dark: #65717c;
+
     --green: #4ade80;
+
     --red: #f87171;
+
     --accent: #dce8f2;
 }
 
@@ -37,7 +49,9 @@ html {
 
 
 body {
+
     margin: 0;
+
     min-height: 100vh;
 
     background:
@@ -64,7 +78,12 @@ button {
 }
 
 
+/* =========================
+   CONTAINER
+========================= */
+
 .container {
+
     width: min(
         1240px,
         calc(100% - 40px)
@@ -79,8 +98,11 @@ button {
 ========================= */
 
 .site-header {
+
     position: sticky;
+
     top: 0;
+
     z-index: 20;
 
     border-bottom:
@@ -99,16 +121,21 @@ button {
             0.88
         );
 
-    backdrop-filter: blur(14px);
+    backdrop-filter:
+        blur(14px);
 }
 
 
 .header-inner {
+
     min-height: 82px;
 
     display: flex;
+
     align-items: center;
-    justify-content: space-between;
+
+    justify-content:
+        space-between;
 
     gap: 20px;
 }
@@ -120,7 +147,9 @@ button {
 
 
 .brand {
+
     font-size: 23px;
+
     font-weight: 850;
 
     letter-spacing: 0.05em;
@@ -130,6 +159,7 @@ button {
 
 
 .subtitle {
+
     margin-top: 4px;
 
     color: var(--muted);
@@ -139,7 +169,9 @@ button {
 
 
 .header-status {
+
     display: inline-flex;
+
     align-items: center;
 
     gap: 8px;
@@ -151,7 +183,9 @@ button {
 
 
 .status-dot {
+
     width: 8px;
+
     height: 8px;
 
     border-radius: 50%;
@@ -181,17 +215,20 @@ button {
 ========================= */
 
 .hero {
+
     padding:
         48px 0 24px;
 }
 
 
 .eyebrow {
+
     margin: 0 0 10px;
 
     color: var(--muted);
 
     font-size: 11px;
+
     font-weight: 800;
 
     letter-spacing: 0.14em;
@@ -199,22 +236,26 @@ button {
 
 
 .hero h1 {
+
     margin: 0;
 
-    font-size: clamp(
-        30px,
-        5vw,
-        46px
-    );
+    font-size:
+        clamp(
+            30px,
+            5vw,
+            46px
+        );
 
     line-height: 1.05;
 }
 
 
 .hero-text {
+
     max-width: 680px;
 
-    margin: 14px 0 0;
+    margin:
+        14px 0 0;
 
     color: var(--muted);
 
@@ -229,6 +270,7 @@ button {
 ========================= */
 
 .stats-grid {
+
     display: grid;
 
     grid-template-columns:
@@ -242,6 +284,7 @@ button {
 
 
 .stat-card {
+
     padding: 20px;
 
     border:
@@ -269,11 +312,13 @@ button {
 
 
 .stat-label {
+
     display: block;
 
     color: var(--muted);
 
     font-size: 11px;
+
     font-weight: 800;
 
     letter-spacing: 0.1em;
@@ -281,6 +326,7 @@ button {
 
 
 .stat-value {
+
     display: block;
 
     margin-top: 9px;
@@ -306,10 +352,12 @@ button {
 ========================= */
 
 .toolbar {
+
     display: grid;
 
     grid-template-columns:
         minmax(240px, 1fr)
+        auto
         auto
         auto
         auto;
@@ -338,9 +386,11 @@ button {
 
 
 .search-box {
+
     min-width: 0;
 
     display: flex;
+
     align-items: center;
 
     gap: 8px;
@@ -365,9 +415,11 @@ button {
 
 
 .search-box input {
+
     width: 100%;
 
     border: 0;
+
     outline: 0;
 
     background: transparent;
@@ -384,6 +436,7 @@ button {
 
 
 .filter-group {
+
     display: inline-flex;
 
     gap: 4px;
@@ -400,6 +453,7 @@ button {
 
 
 .filter-button {
+
     border: 0;
 
     border-radius: 7px;
@@ -418,6 +472,7 @@ button {
 
 
 .filter-button:hover {
+
     color: var(--text);
 
     background: #141a20;
@@ -425,6 +480,7 @@ button {
 
 
 .filter-button.active {
+
     color: var(--text);
 
     background: #1a222a;
@@ -432,7 +488,9 @@ button {
 
 
 .sort-select,
+.page-size-select,
 .refresh-button {
+
     height: 42px;
 
     border:
@@ -454,18 +512,28 @@ button {
 
 
 .sort-select {
+
     min-width: 125px;
 }
 
 
-.refresh-button:hover,
-.sort-select:hover {
+.page-size-select {
+
+    min-width: 105px;
+}
+
+
+.sort-select:hover,
+.page-size-select:hover,
+.refresh-button:hover {
+
     border-color:
         var(--border-hover);
 }
 
 
 .refresh-button:disabled {
+
     opacity: 0.55;
 
     cursor: wait;
@@ -477,6 +545,7 @@ button {
 ========================= */
 
 .server-section {
+
     margin-top: 30px;
 }
 
@@ -487,6 +556,7 @@ button {
 
 
 .section-header h2 {
+
     margin: 0;
 
     font-size: 22px;
@@ -494,6 +564,7 @@ button {
 
 
 .section-header p {
+
     margin:
         6px 0 0;
 
@@ -504,6 +575,7 @@ button {
 
 
 .server-list {
+
     display: grid;
 
     gap: 12px;
@@ -511,6 +583,7 @@ button {
 
 
 .server-card {
+
     padding: 20px;
 
     border:
@@ -543,6 +616,7 @@ button {
 
 
 .server-card:hover {
+
     transform:
         translateY(-2px);
 
@@ -569,9 +643,11 @@ button {
 
 
 .server-top {
+
     display: flex;
 
-    align-items: flex-start;
+    align-items:
+        flex-start;
 
     justify-content:
         space-between;
@@ -586,9 +662,11 @@ button {
 
 
 .server-id {
+
     color: var(--muted-dark);
 
     font-size: 11px;
+
     font-weight: 700;
 
     letter-spacing: 0.05em;
@@ -596,6 +674,7 @@ button {
 
 
 .server-name {
+
     margin:
         4px 0 0;
 
@@ -603,11 +682,13 @@ button {
 
     line-height: 1.45;
 
-    overflow-wrap: anywhere;
+    overflow-wrap:
+        anywhere;
 }
 
 
 .server-game {
+
     margin-top: 5px;
 
     color: var(--muted);
@@ -617,6 +698,7 @@ button {
 
 
 .status {
+
     flex-shrink: 0;
 
     display: inline-flex;
@@ -637,6 +719,7 @@ button {
 
 
 .status.online {
+
     background:
         rgba(
             22,
@@ -650,6 +733,7 @@ button {
 
 
 .status.offline {
+
     background:
         rgba(
             220,
@@ -663,9 +747,11 @@ button {
 
 
 .status::before {
+
     content: "";
 
     width: 6px;
+
     height: 6px;
 
     border-radius: 50%;
@@ -680,6 +766,7 @@ button {
 ========================= */
 
 .server-info {
+
     display: grid;
 
     grid-template-columns:
@@ -695,6 +782,7 @@ button {
 
 
 .info-box {
+
     min-width: 0;
 
     padding: 12px;
@@ -707,6 +795,7 @@ button {
 
 
 .info-label {
+
     display: block;
 
     color: #697580;
@@ -720,6 +809,7 @@ button {
 
 
 .info-value {
+
     display: block;
 
     margin-top: 5px;
@@ -730,7 +820,8 @@ button {
 
     font-weight: 700;
 
-    overflow-wrap: anywhere;
+    overflow-wrap:
+        anywhere;
 }
 
 
@@ -739,6 +830,7 @@ button {
 ========================= */
 
 .server-actions {
+
     display: flex;
 
     flex-wrap: wrap;
@@ -751,6 +843,7 @@ button {
 
 .server-actions a,
 .server-actions button {
+
     display: inline-flex;
 
     align-items: center;
@@ -781,9 +874,156 @@ button {
 
 .server-actions a:hover,
 .server-actions button:hover {
+
     background: #192128;
 
     border-color: #394550;
+}
+
+
+/* =========================
+   PAGINATION
+========================= */
+
+.server-pagination {
+
+    display: none;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    gap: 18px;
+
+    margin-top: 18px;
+
+    padding:
+        14px 16px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 14px;
+
+    background:
+        rgba(
+            13,
+            18,
+            23,
+            0.94
+        );
+}
+
+
+.server-pagination.visible {
+    display: flex;
+}
+
+
+.pagination-info {
+
+    flex: 1;
+
+    min-width: 0;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.pagination-info strong {
+
+    color: var(--text);
+
+    font-weight: 800;
+}
+
+
+.pagination-controls {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 8px;
+}
+
+
+.pagination-pages {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+}
+
+
+.pagination-button,
+.pagination-page {
+
+    min-width: 40px;
+
+    height: 38px;
+
+    padding:
+        0 11px;
+
+    border:
+        1px solid #28313a;
+
+    border-radius: 9px;
+
+    background: #12181e;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    font-weight: 750;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+
+.pagination-button:hover:not(:disabled),
+.pagination-page:hover {
+
+    background: #192128;
+
+    border-color: #394550;
+
+    color: var(--text);
+}
+
+
+.pagination-page.active {
+
+    border-color:
+        var(--accent);
+
+    background:
+        #dce8f2;
+
+    color:
+        #07090c;
+}
+
+
+.pagination-button:disabled {
+
+    opacity: 0.35;
+
+    cursor: not-allowed;
 }
 
 
@@ -794,6 +1034,7 @@ button {
 .loading,
 .empty,
 .error {
+
     padding:
         42px 20px;
 
@@ -818,10 +1059,12 @@ button {
 ========================= */
 
 .dashboard-toast {
+
     position: fixed;
 
-    top: 24px;
-    right: 24px;
+    top: 50%;
+
+    left: 50%;
 
     z-index: 99999;
 
@@ -829,25 +1072,25 @@ button {
 
     align-items: center;
 
-    gap: 14px;
+    gap: 16px;
 
     width: min(
-        420px,
+        460px,
         calc(100vw - 32px)
     );
 
     padding:
-        16px 18px;
+        22px 24px;
 
     border:
         1px solid rgba(
             248,
             113,
             113,
-            0.30
+            0.35
         );
 
-    border-radius: 14px;
+    border-radius: 16px;
 
     background:
         rgba(
@@ -858,22 +1101,25 @@ button {
         );
 
     box-shadow:
-        0 18px 50px
-            rgba(
-                0,
-                0,
-                0,
-                0.50
-            );
+        0 24px 80px
+        rgba(
+            0,
+            0,
+            0,
+            0.60
+        );
 
     backdrop-filter:
-        blur(14px);
+        blur(18px);
 
     opacity: 0;
 
     transform:
-        translateY(-12px)
-        translateX(10px);
+        translate(
+            -50%,
+            -50%
+        )
+        scale(0.95);
 
     transition:
         opacity 0.25s ease,
@@ -882,24 +1128,31 @@ button {
 
 
 .dashboard-toast.show {
+
     opacity: 1;
 
     transform:
-        translateY(0)
-        translateX(0);
+        translate(
+            -50%,
+            -50%
+        )
+        scale(1);
 }
 
 
 .dashboard-toast-icon {
+
     flex:
         0 0 auto;
 
-    width: 38px;
-    height: 38px;
+    width: 44px;
+
+    height: 44px;
 
     display: flex;
 
     align-items: center;
+
     justify-content: center;
 
     border-radius: 50%;
@@ -920,15 +1173,17 @@ button {
             0.10
         );
 
-    color: var(--red);
+    color:
+        var(--red);
 
-    font-size: 20px;
+    font-size: 22px;
 
     font-weight: 800;
 }
 
 
 .dashboard-toast-content {
+
     flex: 1;
 
     min-width: 0;
@@ -936,31 +1191,35 @@ button {
 
 
 .dashboard-toast-title {
+
     color: var(--text);
 
-    font-size: 14px;
+    font-size: 15px;
 
     font-weight: 800;
 }
 
 
 .dashboard-toast-message {
-    margin-top: 4px;
+
+    margin-top: 5px;
 
     color: var(--muted);
 
-    font-size: 12px;
+    font-size: 13px;
 
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 
 .dashboard-toast-close {
+
     flex:
         0 0 auto;
 
-    width: 30px;
-    height: 30px;
+    width: 32px;
+
+    height: 32px;
 
     border: 0;
 
@@ -972,7 +1231,7 @@ button {
     color:
         var(--muted-dark);
 
-    font-size: 20px;
+    font-size: 22px;
 
     line-height: 1;
 
@@ -985,6 +1244,7 @@ button {
 
 
 .dashboard-toast-close:hover {
+
     background:
         rgba(
             255,
@@ -1003,6 +1263,7 @@ button {
 ========================= */
 
 .site-footer {
+
     width: min(
         1240px,
         calc(100% - 40px)
@@ -1034,24 +1295,64 @@ button {
    RESPONSIVE
 ========================= */
 
+@media (max-width: 1050px) {
+
+    .toolbar {
+
+        grid-template-columns:
+            minmax(220px, 1fr)
+            auto
+            auto
+            auto;
+
+    }
+
+    .page-size-select {
+        grid-column: auto;
+    }
+}
+
+
 @media (max-width: 900px) {
 
     .toolbar {
+
         grid-template-columns:
             1fr 1fr;
     }
 
     .search-box {
+
         grid-column:
             1 / -1;
     }
 
     .server-info {
+
         grid-template-columns:
             repeat(
                 2,
                 minmax(0, 1fr)
             );
+    }
+
+    .server-pagination {
+
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+    }
+
+    .pagination-controls {
+
+        width: 100%;
+
+        justify-content:
+            space-between;
+
+        flex-wrap: wrap;
     }
 }
 
@@ -1059,6 +1360,7 @@ button {
 @media (max-width: 700px) {
 
     .container {
+
         width: min(
             calc(100% - 24px),
             1240px
@@ -1066,6 +1368,7 @@ button {
     }
 
     .header-inner {
+
         min-height: 74px;
 
         align-items:
@@ -1085,6 +1388,7 @@ button {
     }
 
     .stats-grid {
+
         grid-template-columns:
             repeat(
                 2,
@@ -1093,37 +1397,96 @@ button {
     }
 
     .toolbar {
+
         grid-template-columns:
             1fr;
     }
 
     .search-box {
+
         grid-column:
             auto;
     }
 
     .filter-group {
+
         justify-content:
             center;
     }
 
     .sort-select,
+    .page-size-select,
     .refresh-button {
+
         width: 100%;
     }
 
     .server-top {
+
         flex-direction:
             column;
     }
 
+    .server-pagination {
+
+        padding:
+            12px;
+    }
+
+    .pagination-controls {
+
+        gap: 6px;
+    }
+
+    .pagination-pages {
+
+        max-width: 100%;
+
+        overflow-x: auto;
+
+        padding-bottom: 2px;
+    }
+
+    .pagination-button,
+    .pagination-page {
+
+        min-width: 38px;
+
+        height: 36px;
+
+        padding:
+            0 9px;
+    }
+
     .dashboard-toast {
-        top: 14px;
 
-        right: 16px;
-        left: 16px;
+        top: 50%;
 
-        width: auto;
+        left: 50%;
+
+        right: auto;
+
+        width: min(
+            calc(100vw - 32px),
+            460px
+        );
+
+        transform:
+            translate(
+                -50%,
+                -50%
+            )
+            scale(0.95);
+    }
+
+    .dashboard-toast.show {
+
+        transform:
+            translate(
+                -50%,
+                -50%
+            )
+            scale(1);
     }
 }
 
@@ -1132,6 +1495,7 @@ button {
 
     .stats-grid,
     .server-info {
+
         grid-template-columns:
             1fr;
     }
@@ -1148,13 +1512,60 @@ button {
         padding: 16px;
     }
 
+    .server-pagination {
+
+        gap: 10px;
+    }
+
+    .pagination-info {
+
+        font-size: 11px;
+    }
+
+    .pagination-controls {
+
+        justify-content:
+            center;
+    }
+
+    .pagination-button {
+
+        flex:
+            1 1 auto;
+    }
+
+    .pagination-pages {
+
+        order: 3;
+
+        width: 100%;
+
+        justify-content:
+            center;
+    }
+
     .dashboard-toast {
+
+        gap: 12px;
+
         padding:
-            14px;
+            18px;
     }
 
     .dashboard-toast-icon {
-        width: 34px;
-        height: 34px;
+
+        width: 38px;
+
+        height: 38px;
+
+        font-size: 20px;
+    }
+
+    .dashboard-toast-title {
+        font-size: 14px;
+    }
+
+    .dashboard-toast-message {
+        font-size: 12px;
     }
 }
