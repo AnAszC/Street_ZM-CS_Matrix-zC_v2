@@ -144,3 +144,7 @@ dist
 # Database backup artifacts
 backups/
 *.dump
+
+# Local test files
+app_full.txt
+cookies.txt

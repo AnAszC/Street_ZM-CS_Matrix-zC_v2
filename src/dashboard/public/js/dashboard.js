@@ -10,6 +10,12 @@ const PAGE_SIZE_OPTIONS = [
 
 const DEFAULT_SERVERS_PER_PAGE = 20;
 
+const RATE_LIMIT_RETRY_FALLBACK_MS = 10000;
+
+
+/* =========================
+   DASHBOARD STATE
+========================= */
 
 const state = {
     servers: [],
@@ -20,6 +26,23 @@ const state = {
     serversPerPage:
         DEFAULT_SERVERS_PER_PAGE
 };
+
+
+/*
+ * Prevent overlapping requests.
+ *
+ * This is important because the automatic
+ * refresh runs every 10 seconds and the user
+ * can also press Refresh manually.
+ */
+let isLoading = false;
+
+
+/*
+ * Stores the scheduled retry timeout when
+ * the API responds with HTTP 429.
+ */
+let retryTimeoutId = null;
 
 
 const serverList =
@@ -1000,13 +1023,84 @@ async function copyConnectValue(value) {
 
 
 /* =========================
+   RATE LIMIT HELPERS
+========================= */
+
+function clearRateLimitRetry() {
+    if (!retryTimeoutId) {
+        return;
+    }
+
+    clearTimeout(
+        retryTimeoutId
+    );
+
+    retryTimeoutId = null;
+}
+
+
+function scheduleRateLimitRetry(
+    retryAfterSeconds
+) {
+    clearRateLimitRetry();
+
+    let delayMs =
+        RATE_LIMIT_RETRY_FALLBACK_MS;
+
+    const parsedRetryAfter =
+        Number(
+            retryAfterSeconds
+        );
+
+    if (
+        Number.isFinite(
+            parsedRetryAfter
+        ) &&
+        parsedRetryAfter > 0
+    ) {
+        delayMs =
+            Math.ceil(
+                parsedRetryAfter * 1000
+            );
+    }
+
+    const delaySeconds =
+        Math.max(
+            1,
+            Math.ceil(
+                delayMs / 1000
+            )
+        );
+
+    lastUpdate.textContent =
+        `Rate limit active. Retrying in ${delaySeconds}s`;
+
+    retryTimeoutId =
+        setTimeout(
+            () => {
+                retryTimeoutId = null;
+                loadServers();
+            },
+            delayMs
+        );
+}
+
+
+/* =========================
    LOAD SERVERS
 ========================= */
 
 async function loadServers() {
+    /*
+     * Prevent overlapping requests.
+     */
+    if (isLoading) {
+        return;
+    }
+
+    isLoading = true;
 
     try {
-
         refreshButton.disabled = true;
 
         const response =
@@ -1017,8 +1111,44 @@ async function loadServers() {
                 }
             );
 
-        if (!response.ok) {
+        /*
+         * Handle HTTP 429 separately.
+         *
+         * Existing server data remains visible.
+         */
+        if (
+            response.status === 429
+        ) {
+            let retryAfter =
+                response.headers.get(
+                    'Retry-After'
+                );
 
+            try {
+                const data =
+                    await response.json();
+
+                if (
+                    data &&
+                    data.retryAfter != null
+                ) {
+                    retryAfter =
+                        data.retryAfter;
+                }
+            } catch {
+                /*
+                 * The Retry-After header is enough.
+                 */
+            }
+
+            scheduleRateLimitRetry(
+                retryAfter
+            );
+
+            return;
+        }
+
+        if (!response.ok) {
             throw new Error(
                 `HTTP ${response.status}`
             );
@@ -1033,11 +1163,12 @@ async function loadServers() {
                 data.servers
             )
         ) {
-
             throw new Error(
                 'Invalid server data'
             );
         }
+
+        clearRateLimitRetry();
 
         state.servers =
             data.servers;
@@ -1061,31 +1192,46 @@ async function loadServers() {
             error
         );
 
-        serverList.className = '';
+        /*
+         * Keep the previous valid data when
+         * a temporary request error occurs.
+         */
+        if (
+            state.servers.length > 0
+        ) {
+            renderServers();
 
-        serverList.innerHTML = `
-            <div class="error">
-                Failed to load Game Servers.
-            </div>
-        `;
+            lastUpdate.textContent =
+                'Update failed — keeping previous data';
 
-        resultSummary.textContent =
-            'Unable to load server data';
+        } else {
+            serverList.className = '';
 
-        lastUpdate.textContent =
-            'Update failed';
+            serverList.innerHTML = `
+                <div class="error">
+                    Failed to load Game Servers.
+                </div>
+            `;
 
-        if (paginationContainer) {
+            resultSummary.textContent =
+                'Unable to load server data';
 
-            paginationContainer.innerHTML =
-                '';
+            lastUpdate.textContent =
+                'Update failed';
 
-            paginationContainer.classList.remove(
-                'visible'
-            );
+            if (paginationContainer) {
+                paginationContainer.innerHTML =
+                    '';
+
+                paginationContainer.classList.remove(
+                    'visible'
+                );
+            }
         }
 
     } finally {
+
+        isLoading = false;
 
         refreshButton.disabled =
             false;
@@ -1184,7 +1330,6 @@ document.addEventListener(
                 Number.isInteger(page) &&
                 page >= 1
             ) {
-
                 state.currentPage =
                     page;
 
@@ -1194,7 +1339,6 @@ document.addEventListener(
             return;
         }
 
-
         const actionButton =
             event.target.closest(
                 '[data-page-action]'
@@ -1203,7 +1347,6 @@ document.addEventListener(
         if (!actionButton) {
             return;
         }
-
 
         const action =
             actionButton.dataset.pageAction;
@@ -1216,12 +1359,10 @@ document.addEventListener(
                 visibleServers.length
             );
 
-
         if (
             action ===
             'previous'
         ) {
-
             state.currentPage =
                 Math.max(
                     1,
@@ -1229,19 +1370,16 @@ document.addEventListener(
                 );
         }
 
-
         if (
             action ===
             'next'
         ) {
-
             state.currentPage =
                 Math.min(
                     totalPages,
                     state.currentPage + 1
                 );
         }
-
 
         renderServers();
     }
@@ -1254,7 +1392,9 @@ document.addEventListener(
 
 refreshButton.addEventListener(
     'click',
-    loadServers
+    () => {
+        loadServers();
+    }
 );
 
 
@@ -1317,6 +1457,8 @@ handleServerNotFoundNotification();
 loadServers();
 
 setInterval(
-    loadServers,
+    () => {
+        loadServers();
+    },
     REFRESH_INTERVAL
 );

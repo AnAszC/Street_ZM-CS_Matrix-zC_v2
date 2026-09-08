@@ -35,7 +35,7 @@ const dashboardPublicPath = path.join(
 const rateState = new Map();
 
 const RATE_WINDOW_MS = 60 * 1000;
-const RATE_MAX_REQUESTS = 60;
+const RATE_MAX_REQUESTS = 300;
 
 function getClientIp(req) {
     return (
@@ -78,11 +78,22 @@ function dashboardRateLimit(req, res, next) {
             String(retryAfter)
         );
 
+        res.setHeader(
+            'Cache-Control',
+            'no-store'
+        );
+
         return res.status(429).json({
+            success: false,
             error: 'Too many dashboard requests',
             retryAfter
         });
     }
+
+    res.setHeader(
+        'Cache-Control',
+        'no-store'
+    );
 
     next();
 }

@@ -1,4 +1,3 @@
-
 import gamedig from 'gamedig';
 
 const { query } = gamedig;
@@ -23,14 +22,11 @@ export async function fetchServerInfo(
     serverConfig,
     options = {}
 ) {
-
     const {
         throwOnFailure = false
     } = options;
 
-
     try {
-
         const info =
             await query({
                 type:
@@ -47,7 +43,6 @@ export async function fetchServerInfo(
                         serverConfig.port
                     )
             });
-
 
         return {
             querySuccess: true,
@@ -127,9 +122,7 @@ export async function fetchServerInfo(
                 null
         };
 
-
     } catch (error) {
-
         console.error(
             `[GameServer Query] Failed to query ${
                 serverConfig.name ||
@@ -138,24 +131,10 @@ export async function fetchServerInfo(
             error.message
         );
 
-
-        /*
-         * The Game Server Monitor can request
-         * the original error to be thrown.
-         *
-         * This allows the monitor to count
-         * consecutive Query failures.
-         */
         if (throwOnFailure) {
-
             throw error;
         }
 
-
-        /*
-         * Keep the existing behavior for
-         * all other callers in the project.
-         */
         return {
             querySuccess: false,
 
@@ -187,4 +166,3 @@ export async function fetchServerInfo(
         };
     }
 }
-
